@@ -19,3 +19,6 @@ user_data/notebooks/
 # Machine-specific and secret overrides - never commit these
 user_data/config.proxy.json
 user_data/config.private.json
+
+# Python bytecode
+__pycache__/
