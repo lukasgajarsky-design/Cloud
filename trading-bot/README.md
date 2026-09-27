@@ -6,7 +6,7 @@ Why Freqtrade: it came out on top of a six-way research pass (open-source activi
 
 ## Install
 
-Needs Python 3.11+ (or [uv](https://docs.astral.sh/uv/)) on Linux or macOS.
+Needs Python 3.11+ (or [uv](https://docs.astral.sh/uv/)) on Linux, macOS or WSL. For plain Windows, see below.
 
 ```bash
 cd trading-bot
@@ -19,6 +19,30 @@ This installs the pinned Freqtrade release from PyPI into `.venv/` and creates t
 uvx pypi-attestations verify pypi --repository https://github.com/freqtrade/freqtrade \
   pypi:freqtrade-2026.8-py3-none-any.whl
 ```
+
+### Windows (Command Prompt, no WSL needed)
+
+Use a normal Command Prompt, not "Run as administrator".
+
+```bat
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Close the window and open a new Command Prompt so `uv` is on the PATH, then:
+
+```bat
+cd /d %USERPROFILE%
+git clone -b claude/inspiring-ramanujan-4iyy3s https://github.com/lukasgajarsky-design/Cloud.git
+cd Cloud\trading-bot
+uv venv --python 3.12 .venv
+uv pip install freqtrade==2026.8
+.venv\Scripts\activate
+freqtrade create-userdir --userdir user_data
+freqtrade download-data -c user_data\config.json --days 60 --timeframes 5m 1h
+freqtrade trade -c user_data\config.json
+```
+
+For Hyperliquid, use `freqtrade trade -c user_data\config.json -c user_data\config.hyperliquid.json`. In a new window, run `cd /d %USERPROFILE%\Cloud\trading-bot` and `.venv\Scripts\activate` first. `install.sh` and `bot.sh` are for Linux, macOS and WSL only.
 
 ## Use
 
