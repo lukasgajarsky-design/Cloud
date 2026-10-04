@@ -6,6 +6,7 @@ Reference notes on Claude's cloud features.
 
 - [Create and edit files with Claude](docs/create-and-edit-files-with-claude.md): enabling code execution and file creation, network egress settings per plan, security considerations, approved domains, and example workflows.
 - [Crypto trading bots: research notes](docs/crypto-trading-bots-2026.md): comparison of open-source and on-chain trading bots as of September 2026, security red flags, and a reality check on returns.
+- [FL Studio piano roll MCP: local setup](docs/fl-studio-mcp-setup.md): install steps for macOS and Windows that connect Claude Code to FL Studio's piano roll (calvinw/fl-studio-mcp), with fixes for gaps in the upstream installer.
 
 ## Trading bot
 
