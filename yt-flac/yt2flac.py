@@ -1,6 +1,6 @@
 #!/usr/bin/env -S uv run --script
 # /// script
-# requires-python = ">=3.10"
+# requires-python = ">=3.11"
 # dependencies = [
 #     "yt-dlp[default]>=2026.8.19",
 #     "imageio-ffmpeg>=0.6.0",
