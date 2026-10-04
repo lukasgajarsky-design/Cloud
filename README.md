@@ -19,3 +19,7 @@ Reference notes on Claude's cloud features.
 ## Music remixing
 
 - [claude-strudel-remixer/](claude-strudel-remixer/): stem separation with Demucs, BPM/key/LUFS analysis, and Strudel live-coding patterns for remixes.
+
+## YouTube to FLAC
+
+- [yt-flac/](yt-flac/): paste a YouTube link, get the best available audio saved as tagged FLAC with cover art. Double-click launcher for Windows.
