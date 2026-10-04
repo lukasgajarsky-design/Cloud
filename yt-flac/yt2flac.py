@@ -17,6 +17,10 @@ Usage:
 Files go to <your home folder>/Music/YouTube FLAC unless -o or the
 YT2FLAC_DIR environment variable says otherwise. Title, artist, date and
 the video thumbnail (as cover art) are written into each file.
+
+If you are signed in to YouTube in Firefox, that login is used (Premium
+audio, age-restricted videos, fewer bot checks). Use --no-cookies to turn
+this off, or --cookies-from-browser to pick another browser.
 """
 
 import argparse
@@ -25,8 +29,12 @@ import sys
 from pathlib import Path
 
 import yt_dlp
+from yt_dlp.cookies import extract_cookies_from_browser
 
 DEFAULT_DIR = Path.home() / "Music" / "YouTube FLAC"
+DEFAULT_BROWSER = "firefox"
+# yt-dlp treats a session as signed in when LOGIN_INFO and one of these exist.
+SID_COOKIES = {"SAPISID", "__Secure-1PAPISID", "__Secure-3PAPISID"}
 
 
 def find_ffmpeg():
@@ -47,6 +55,21 @@ def find_deno():
         return deno.find_deno_bin()
     except Exception:
         return None  # fall back to deno on PATH
+
+
+def youtube_login(browser, profile):
+    """Return None if the browser holds a signed-in YouTube session, else why not."""
+    try:
+        jar = extract_cookies_from_browser(browser, profile)
+    except FileNotFoundError:
+        return f"{browser} isn't installed or has no profile"
+    except Exception as err:
+        return f"couldn't read {browser}'s cookies ({err})"
+    names = {c.name for c in jar if c.domain.endswith("youtube.com")}
+    if "LOGIN_INFO" in names and names & SID_COOKIES:
+        return None
+    # The browser may not have saved a fresh login to disk yet; closing it does.
+    return f"not signed in to YouTube in {browser} (if you are, close {browser} and try again)"
 
 
 def build_options(out_dir, playlist, browser):
@@ -74,7 +97,10 @@ def build_options(out_dir, playlist, browser):
     if deno := find_deno():
         opts["js_runtimes"] = {"deno": {"path": deno}}
     if browser:
-        opts["cookiesfrombrowser"] = (browser,)
+        opts["cookiesfrombrowser"] = browser
+    if playlist:
+        # Pause between songs so long playlists stay under YouTube's rate limits.
+        opts["sleep_interval"], opts["max_sleep_interval"] = 5, 10
     return opts
 
 
@@ -120,16 +146,33 @@ def main():
     )
     parser.add_argument(
         "--cookies-from-browser",
-        metavar="BROWSER",
-        help="use your YouTube login from this browser (firefox, chrome, edge, ...): "
+        metavar="BROWSER[:PROFILE]",
+        default=DEFAULT_BROWSER,
+        help=f"use your YouTube login from this browser (default: {DEFAULT_BROWSER}): "
         "gets Premium's higher-bitrate audio and age-restricted videos",
+    )
+    parser.add_argument(
+        "--no-cookies",
+        action="store_true",
+        help="don't use any browser login",
     )
     args = parser.parse_args()
 
     out_dir = args.output.expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    opts = build_options(out_dir, args.playlist, args.cookies_from_browser)
     print(f"Saving to: {out_dir}")
+
+    browser = None
+    if not args.no_cookies:
+        name, _, profile = args.cookies_from_browser.partition(":")
+        name = name.lower()
+        problem = youtube_login(name, profile or None)
+        if problem:
+            print(f"Downloading without a YouTube login: {problem}.")
+        else:
+            print(f"Using your YouTube login from {name}.")
+            browser = (name, profile or None)
+    opts = build_options(out_dir, args.playlist, browser)
 
     if args.urls:
         failed = download(args.urls, opts)
