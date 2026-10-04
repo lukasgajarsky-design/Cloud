@@ -14,3 +14,7 @@ Reference notes on Claude's cloud features.
 ## Instagram bot
 
 - [instagram-bot/](instagram-bot/): Instagram business account automation with the Meta Graph API and Claude Opus 5.5 – replies to comments and DMs, publishes scheduled posts from `queue/`, and learns an editing and caption style from a video (`--learn`). Setup guide in Slovak.
+
+## Music remixing
+
+- [claude-strudel-remixer/](claude-strudel-remixer/): stem separation with Demucs, BPM/key/LUFS analysis, and Strudel live-coding patterns for remixes.
