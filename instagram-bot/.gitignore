@@ -1,0 +1,26 @@
+# Tajomstvá – nikdy necommitovať
+.env
+.env.*
+!.env.example
+
+# Python prostredie a cache
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Stav bota, logy a generované výstupy
+data/
+*.log
+*.log.*
+output/
+
+# Obsah fronty (médiá a prompty) – priečinok ostáva cez .gitkeep
+queue/*
+!queue/.gitkeep
+
+# Záloha a dočasný súbor blueprintu
+config/style_guide.txt.bak
+config/style_guide.txt.tmp

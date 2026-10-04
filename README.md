@@ -10,3 +10,7 @@ Reference notes on Claude's cloud features.
 ## Trading bot
 
 - [trading-bot/](trading-bot/): Freqtrade set up for paper trading on OKX or Hyperliquid, with install and run scripts.
+
+## Instagram bot
+
+- [instagram-bot/](instagram-bot/): Instagram business account automation with the Meta Graph API and Claude Opus 5.5 – replies to comments and DMs, publishes scheduled posts from `queue/`, and learns an editing and caption style from a video (`--learn`). Setup guide in Slovak.
