@@ -56,7 +56,7 @@ With `--playlist`, the script waits 5–10 seconds between songs to stay under Y
 
 ## YouTube login from Firefox
 
-If you're signed in to YouTube in Firefox, the script uses that login automatically and prints `Using your YouTube login from firefox.` at the start. With it you get Premium's higher-bitrate audio (if you have Premium), age-restricted videos, and fewer "not a bot" checks. Firefox can stay open, and yt-dlp uses your most recently used Firefox profile.
+If you're signed in to YouTube in Firefox, the script uses that login automatically and prints `Using your YouTube login from firefox.` at the start. With it you get Premium's higher-bitrate audio (if you have Premium), age-restricted videos, and fewer "not a bot" checks. yt-dlp uses your most recently used Firefox profile. Firefox can stay open, but it saves login changes to disk only every so often, and yt-dlp only sees what's on disk. If anything below goes wrong with the login, close Firefox and run the script again.
 
 If it prints `Downloading without a YouTube login` instead, it says why:
 
@@ -80,7 +80,7 @@ Files go to `~/Music/YouTube FLAC`.
 
 - **HTTP Error 403** or **Sign in to confirm you're not a bot**: YouTube is blocking your IP. This happens on VPNs and cloud servers. Turn the VPN off, and check the script says it's using your Firefox login.
 - **Video unavailable** or **age-restricted**: sign in to YouTube in Firefox and run it again.
-- **The provided YouTube account cookies are no longer valid**: YouTube renewed your login in Firefox mid-run. Run the script again.
+- **The provided YouTube account cookies are no longer valid**: Firefox renewed your YouTube login but hasn't saved it to disk yet. Close Firefox and run the script again.
 - Anything else: run `uv run --upgrade yt2flac.py LINK` once to update everything.
 
 ## Using it with Claude

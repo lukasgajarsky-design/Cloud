@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 
 import yt_dlp
-from yt_dlp.cookies import extract_cookies_from_browser
+from yt_dlp.cookies import CookieLoadError, LenientSimpleCookie, extract_cookies_from_browser
 
 DEFAULT_DIR = Path.home() / "Music" / "YouTube FLAC"
 DEFAULT_BROWSER = "firefox"
@@ -65,8 +65,9 @@ def youtube_login(browser, profile):
         return f"{browser} isn't installed or has no profile"
     except Exception as err:
         return f"couldn't read {browser}'s cookies ({err})"
-    names = {c.name for c in jar if c.domain.endswith("youtube.com")}
-    if "LOGIN_INFO" in names and names & SID_COOKIES:
+    # Same check as yt-dlp: only unexpired cookies that would be sent to YouTube.
+    cookies = LenientSimpleCookie(jar.get_cookie_header("https://www.youtube.com"))
+    if "LOGIN_INFO" in cookies and any(cookies[n].value for n in SID_COOKIES & cookies.keys()):
         return None
     # The browser may not have saved a fresh login to disk yet; closing it does.
     return f"not signed in to YouTube in {browser} (if you are, close {browser} and try again)"
@@ -113,6 +114,11 @@ def download(urls, opts):
                     failed.append(url)
             except yt_dlp.utils.DownloadError:
                 failed.append(url)
+            except CookieLoadError:
+                # The browser rewrote its cookie file since the startup check.
+                print("Couldn't read the browser login this time; trying without it.")
+                no_login = {k: v for k, v in opts.items() if k != "cookiesfrombrowser"}
+                failed += download([url], no_login)
     return failed
 
 
