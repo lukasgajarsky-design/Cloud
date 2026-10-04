@@ -233,7 +233,16 @@ def print_report(r):
         print("✅ Bez clippingu, true peak v limite.")
 
 
+def use_utf8_output():
+    """On Windows, piped output (e.g. from Claude Code) defaults to a legacy code page
+    that can't encode emoji or Slovak letters and would crash the report."""
+    for stream in (sys.stdout, sys.stderr):
+        if stream.encoding.lower().replace("-", "") != "utf8":
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main():
+    use_utf8_output()
     parser = argparse.ArgumentParser(description="BPM, tónina, LUFS, true peak a clipping pre audio súbor.")
     parser.add_argument("file", type=Path)
     parser.add_argument("--json", type=Path, help="uložiť report ako JSON (napr. analysis/<skladba>.json)")

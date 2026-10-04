@@ -16,3 +16,6 @@ exports/*
 *.aif
 *.m4a
 *.ogg
+
+# Per-machine approvals saved by Claude Code
+.claude/settings.local.json

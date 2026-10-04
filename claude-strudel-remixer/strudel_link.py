@@ -19,6 +19,10 @@ def strudel_url(code):
 
 
 def main():
+    # Windows pipes default to a legacy code page that can't encode the Slovak messages
+    for stream in (sys.stdout, sys.stderr):
+        if stream.encoding.lower().replace("-", "") != "utf8":
+            stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="Vytvorí odkaz na strudel.cc s kódom zo súboru.")
     parser.add_argument("file", type=Path)
     parser.add_argument("--open", action="store_true", help="otvoriť odkaz v prehliadači")

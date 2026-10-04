@@ -6,7 +6,7 @@
 // Analyzed: YYYY-MM-DD
 //
 // Plays as-is in https://strudel.cc. The vocal track is muted (_$:) until the stems are served:
-//   cd separated/htdemucs && npx @strudel/sampler
+//   npx --yes @strudel/sampler --dir separated/htdemucs
 // The first play only downloads the stem and skips it - stop and play again.
 
 setcpm(120/4) // 4/4: one cycle = one bar
