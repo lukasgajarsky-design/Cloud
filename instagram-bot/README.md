@@ -1,7 +1,9 @@
 # Instagram Bot – Meta Graph API + Claude Opus 5.5
 
 Produkčný bot pre Instagram biznis/creator účet. Hlavným „mozgom“ je **Claude Opus 5.5**
-(`claude-opus-5-5`, 1M kontext, adaptívne premýšľanie). Bot má dva režimy:
+(`claude-opus-5-5`, 1M kontext, adaptívne premýšľanie) – analyzuje videá, píše popisy
+a scenáre. Časté krátke odpovede na komentáre a DM vybavuje lacnejší **Claude Sonnet 5.5**
+(`claude-sonnet-5-5`). Bot má dva režimy:
 
 | Režim | Príkaz | Čo robí |
 |---|---|---|
@@ -50,7 +52,7 @@ instagram-bot/
 │   ├── config.py              # načítanie a validácia .env
 │   ├── graph_client.py        # HTTP klient Meta API: retries, backoff, rate limiting
 │   ├── instagram_api.py       # komentáre, DM, publikovanie (Instagram aj Facebook Login)
-│   ├── claude_client.py       # Claude Opus 5.5: structured outputs, streaming, fallback
+│   ├── claude_client.py       # Claude (Opus + Sonnet): structured outputs, streaming, fallback
 │   ├── prompts.py             # system prompty a JSON schémy
 │   ├── knowledge.py           # načítanie brand voice + blueprintu (bez reštartu)
 │   ├── storage.py             # SQLite (claim → act → finish)
@@ -64,7 +66,7 @@ instagram-bot/
 │       ├── metrics.py         # rytmus strihu, tempo reči
 │       ├── transcription.py   # prepis reči: OpenAI whisper-1 / faster-whisper / none
 │       └── style_learner.py   # celá pipeline --learn
-└── tests/                     # 48 testov (Meta aj Claude sú v testoch falošné)
+└── tests/                     # 49 testov (Meta aj Claude sú v testoch falošné)
 ```
 
 ## 2. Inštalácia
@@ -173,12 +175,21 @@ Použi, ak už máš Instagram účet prepojený s Facebook stránkou a aplikác
 
 ## 4. Ostatné kľúče (Anthropic, OpenAI)
 
-- **Anthropic API key:** <https://console.anthropic.com> → *API Keys* → *Create Key* →
-  `ANTHROPIC_API_KEY`. Model je predvolene `claude-opus-5-5` (`ANTHROPIC_MODEL`).
+- **Anthropic API key:** <https://console.anthropic.com> → *Billing* (dobiť kredit) →
+  *API Keys* → *Create Key* → `ANTHROPIC_API_KEY`. API sa platí zvlášť – predplatné
+  claude.ai (Pro/Max) ho nepokrýva. V konzole si nastav aj mesačný limit míňania.
+- **Modely podľa úlohy:**
+
+  | Premenná | Predvolene | Na čo |
+  |---|---|---|
+  | `ANTHROPIC_MODEL` | `claude-opus-5-5` | analýza videa (`--learn`), popisy príspevkov, scenáre (`--script`) |
+  | `ANTHROPIC_MODEL_REPLIES` | `claude-sonnet-5-5` | odpovede na komentáre a DM (polovičná cena) |
+
+  Ak chceš aj odpovede od Opusu, nastav `ANTHROPIC_MODEL_REPLIES=claude-opus-5-5`.
 - **Úsilie premýšľania (adaptive thinking effort)** je oddelené pre jednotlivé úlohy:
-  `ANTHROPIC_EFFORT_REPLIES=medium` (komentáre, DM), `ANTHROPIC_EFFORT_CONTENT=high`
-  (popisy, scenáre), `ANTHROPIC_EFFORT_LEARN=high` (analýza videa). Povolené:
-  `low | medium | high | xhigh | max`.
+  `ANTHROPIC_EFFORT_REPLIES=low` (komentáre, DM – najlacnejšie; `medium` = premyslenejšie),
+  `ANTHROPIC_EFFORT_CONTENT=high` (popisy, scenáre), `ANTHROPIC_EFFORT_LEARN=high`
+  (analýza videa). Povolené: `low | medium | high | xhigh | max`.
 - **Prepis reči (`--learn`):**
   - `ASR_PROVIDER=openai` – OpenAI Audio API, model `whisper-1`, segmenty s časovými
     značkami. Kľúč: <https://platform.openai.com/api-keys> → `OPENAI_API_KEY`.
@@ -187,10 +198,21 @@ Použi, ak už máš Instagram účet prepojený s Facebook stránkou a aplikác
     (`pip install -r requirements-local-asr.txt`; prvé spustenie stiahne model).
   - `ASR_PROVIDER=none` – bez prepisu (analýza len z obrazu a strihov).
 
-**Orientačné náklady** (ceny Claude Opus 5.5: 4 $/1M vstupných, 20 $/1M výstupných tokenov):
-jedna analýza 60 s videa s ~240 snímkami 768 px ≈ 110 tis. vstupných tokenov + blueprint
-a premýšľanie ≈ **0,5 – 1,5 $**; jedna odpoveď na komentár/DM ≈ **0,02 – 0,06 $**
-(spoločná časť system promptu sa cachuje). Presnú spotrebu každého volania vidíš v logu.
+**Komu sa platí:**
+
+| Služba | Za čo | Cena |
+|---|---|---|
+| Meta (Instagram Graph API) | komentáre, DM, publikovanie | zadarmo – Meta access token je len „heslo“ |
+| Anthropic | Claude: Opus 5.5 (4 $ / 20 $) a Sonnet 5.5 (2 $ / 10 $) za 1M vstupných / výstupných tokenov | podľa spotreby |
+| OpenAI | prepis reči pri `--learn` (`whisper-1`) | podľa minút audia; alternatíva `faster-whisper` je zadarmo |
+| Hosting | počítač/server pre bota, verejná URL pre `queue/` | vlastný PC zadarmo, malý VPS pár eur/mesiac |
+
+**Orientačné náklady na Claude** (odhady, nie merania): analýza 60 s videa (~240 snímok
+768 px ≈ 110 tis. vstupných tokenov + blueprint a premýšľanie) ≈ **0,5 – 1,5 $** jednorazovo;
+popis príspevku ≈ **0,05 $**; odpoveď na komentár/DM cez Sonnet 5.5 s `low` effort
+≈ **0,01 – 0,025 $**, teda pri ~30 odpovediach denne zhruba **10 – 25 $ mesačne**.
+Spoločná časť system promptu sa cachuje. Presnú spotrebu každého volania (model, tokeny)
+vidíš v `instagram_bot.log`.
 
 ## 5. Verejná URL pre médiá (publikovanie)
 
@@ -327,14 +349,14 @@ Kontrola databázy: `sqlite3 data/instagram_bot.db "SELECT status, COUNT(*) FROM
 | `Meta nevedela spracovať médium: ERROR` | Nevhodný formát/rozmer – video ulož ako MP4 (H.264 + AAC) na výšku 9:16; presné limity sú v dokumentácii Meta (*Reels specifications*). |
 | `Prekročený limit volaní Meta API` | Bot sám počká; zníž `MAX_*_PER_CYCLE` alebo zvýš `POLL_INTERVAL_SECONDS`. |
 | `ffmpeg/ffprobe nie je nainštalovaný` | Nainštaluj podľa návodu v hláške alebo nastav `FFMPEG_BINARY`/`FFPROBE_BINARY`. |
-| `Neplatný ANTHROPIC_API_KEY` / `Model … neexistuje` | Skontroluj kľúč a `ANTHROPIC_MODEL=claude-opus-5-5`. |
+| `Neplatný ANTHROPIC_API_KEY` / `Model … neexistuje` | Skontroluj kľúč, `ANTHROPIC_MODEL=claude-opus-5-5` a `ANTHROPIC_MODEL_REPLIES=claude-sonnet-5-5`. |
 | Bot neodpovedá na DM | Konverzácia je staršia ako 24 h, alebo aplikácia nemá Advanced Access (kap. 3). |
 
 ## 10. Vývoj a testy
 
 ```bash
 pip install -r requirements-dev.txt
-pytest            # 48 testov; video testy použijú skutočný ffmpeg, API sú falošné
+pytest            # 49 testov; video testy použijú skutočný ffmpeg, API sú falošné
 ruff check .      # linter
 mypy              # striktná kontrola typov
 ```

@@ -1,14 +1,18 @@
-"""Volania Claude Opus 5.5 cez oficiálne ``anthropic`` Python SDK.
+"""Volania Claude cez oficiálne ``anthropic`` Python SDK.
 
 Kľúčové rozhodnutia:
 
-* **Model** ``claude-opus-5-5`` (1M kontext, až 600 obrázkov v jednej požiadavke)
-  s **adaptívnym premýšľaním** (``thinking={"type": "adaptive"}``). Hĺbku
-  premýšľania riadi ``output_config.effort`` – iná úroveň pre odpovede,
-  pre tvorbu obsahu a pre analýzu videa (nastaviteľné v ``.env``).
+* **Dva modely podľa náročnosti úlohy:**
+  - ``ANTHROPIC_MODEL`` (predvolene ``claude-opus-5-5``, 1M kontext, až 600 obrázkov
+    v jednej požiadavke) – analýza videa, popisy príspevkov a scenáre,
+  - ``ANTHROPIC_MODEL_REPLIES`` (predvolene ``claude-sonnet-5-5``, polovičná cena) –
+    časté a krátke odpovede na komentáre a DM.
+* **Adaptívne premýšľanie** (``thinking={"type": "adaptive"}``). Hĺbku premýšľania
+  riadi ``output_config.effort`` – iná úroveň pre odpovede, pre tvorbu obsahu
+  a pre analýzu videa (nastaviteľné v ``.env``).
 * **Štruktúrovaný výstup** (``output_config.format`` s JSON schémou) – API
   garantuje validný JSON, takže odpoveď sa nedá „rozbiť“ ani prompt injection-om.
-  (Vynútené ``tool_choice`` Opus 5.5 nepodporuje, preto používame tento spôsob.)
+  (Vynútené ``tool_choice`` Opus 5.5 ani Sonnet 5.5 nepodporujú, preto tento spôsob.)
 * **Retries s exponenciálnym vyčkávaním** rieši SDK automaticky pri 408/409/429/5xx
   a sieťových chybách (``max_retries`` z ``.env``); my už len preložíme konečnú
   chybu na ``ClaudeError`` s príznakom, či má zmysel skúsiť to neskôr.
@@ -71,7 +75,8 @@ class ClaudeAssistant:
         api_key: str,
         model: str,
         knowledge: KnowledgeBase,
-        effort_replies: str = "medium",
+        replies_model: str | None = None,
+        effort_replies: str = "low",
         effort_content: str = "high",
         effort_learn: str = "high",
         max_retries: int = 5,
@@ -85,6 +90,8 @@ class ClaudeAssistant:
         # SDK samo opakuje 429/5xx s exponenciálnym backoffom (rešpektuje aj retry-after).
         self._client = client or anthropic.Anthropic(api_key=api_key, max_retries=max_retries, timeout=timeout_seconds)
         self._model = model
+        # Lacnejší model na komentáre a DM; ak nie je zadaný, použije sa hlavný model.
+        self._replies_model = replies_model or model
         self._knowledge = knowledge
         self._effort_replies = effort_replies
         self._effort_content = effort_content
@@ -96,7 +103,13 @@ class ClaudeAssistant:
 
     @property
     def model(self) -> str:
+        """Hlavný model: analýza videa, popisy príspevkov, scenáre."""
         return self._model
+
+    @property
+    def replies_model(self) -> str:
+        """Model pre odpovede na komentáre a DM."""
+        return self._replies_model
 
     # ------------------------------------------------------------ verejné úlohy
     def decide_comment_reply(self, comment: Comment, media: Media) -> ReplyDecision:
@@ -113,6 +126,7 @@ class ClaudeAssistant:
         )
         data = self._structured_call(
             task="komentár",
+            model=self._replies_model,
             task_instructions=comment_task_instructions(self._comment_max_chars),
             user_content=user_content,
             schema=REPLY_DECISION_SCHEMA,
@@ -136,6 +150,7 @@ class ClaudeAssistant:
         )
         data = self._structured_call(
             task="DM",
+            model=self._replies_model,
             task_instructions=dm_task_instructions(self._dm_max_chars),
             user_content=user_content,
             schema=REPLY_DECISION_SCHEMA,
@@ -151,6 +166,7 @@ class ClaudeAssistant:
         )
         data = self._structured_call(
             task="popis príspevku",
+            model=self._model,
             task_instructions=CAPTION_TASK_INSTRUCTIONS,
             user_content=user_content,
             schema=CAPTION_SCHEMA,
@@ -219,6 +235,7 @@ class ClaudeAssistant:
         self,
         *,
         task: str,
+        model: str,
         task_instructions: str,
         user_content: str,
         schema: dict[str, Any],
@@ -228,7 +245,7 @@ class ClaudeAssistant:
         message = self._invoke(
             stream=False,
             timeout=None,
-            model=self._model,
+            model=model,
             max_tokens=STRUCTURED_MAX_TOKENS,
             system=self._system_blocks(task_instructions),
             messages=[{"role": "user", "content": user_content}],
@@ -297,7 +314,9 @@ class ClaudeAssistant:
         except anthropic.PermissionDeniedError as exc:
             raise ClaudeAuthError("API kľúč nemá prístup k modelu alebo funkcii (403).") from exc
         except anthropic.NotFoundError as exc:
-            raise ClaudeAuthError(f"Model '{self._model}' neexistuje alebo k nemu nemáš prístup (404).") from exc
+            raise ClaudeAuthError(
+                f"Model '{params.get('model')}' neexistuje alebo k nemu nemáš prístup (404)."
+            ) from exc
         except anthropic.BadRequestError as exc:
             raise ClaudeError(f"Neplatná požiadavka na Claude (400): {exc.message}", retryable=False) from exc
         except anthropic.RateLimitError as exc:

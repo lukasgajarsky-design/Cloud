@@ -74,6 +74,7 @@ class Settings:
     # --- Anthropic / Claude ---------------------------------------------------
     anthropic_api_key: str = field(repr=False)
     anthropic_model: str
+    anthropic_model_replies: str
     effort_replies: str
     effort_content: str
     effort_learn: str
@@ -180,7 +181,8 @@ class Settings:
             meta_app_secret=reader.optional("META_APP_SECRET"),
             anthropic_api_key=reader.secret("ANTHROPIC_API_KEY"),
             anthropic_model=reader.text("ANTHROPIC_MODEL", "claude-opus-5-5"),
-            effort_replies=reader.choice("ANTHROPIC_EFFORT_REPLIES", "medium", VALID_EFFORTS),
+            anthropic_model_replies=reader.text("ANTHROPIC_MODEL_REPLIES", "claude-sonnet-5-5"),
+            effort_replies=reader.choice("ANTHROPIC_EFFORT_REPLIES", "low", VALID_EFFORTS),
             effort_content=reader.choice("ANTHROPIC_EFFORT_CONTENT", "high", VALID_EFFORTS),
             effort_learn=reader.choice("ANTHROPIC_EFFORT_LEARN", "high", VALID_EFFORTS),
             anthropic_max_retries=reader.integer("ANTHROPIC_MAX_RETRIES", 5, 0, 10),

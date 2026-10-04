@@ -86,7 +86,8 @@ def test_formatter_redacts_tokens_everywhere() -> None:
 def test_settings_defaults_use_opus_with_adaptive_effort(settings_factory: Callable[..., Settings]) -> None:
     settings = settings_factory()
     assert settings.anthropic_model == "claude-opus-5-5"
-    assert (settings.effort_replies, settings.effort_content, settings.effort_learn) == ("medium", "high", "high")
+    assert settings.anthropic_model_replies == "claude-sonnet-5-5"
+    assert (settings.effort_replies, settings.effort_content, settings.effort_learn) == ("low", "high", "high")
     assert settings.style_guide_path.name == "style_guide.txt"
     settings.validate_for(RunMode.RUN)
     assert "IGQtesttoken" not in repr(settings)  # tajomstvá sa nevypisujú

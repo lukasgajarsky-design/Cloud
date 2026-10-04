@@ -117,6 +117,7 @@ class InstagramBot:
         return ClaudeAssistant(
             api_key=s.anthropic_api_key,
             model=s.anthropic_model,
+            replies_model=s.anthropic_model_replies,
             knowledge=self.knowledge,
             effort_replies=s.effort_replies,
             effort_content=s.effort_content,
@@ -777,7 +778,8 @@ class InstagramBot:
             f"{'načítaný' if snapshot.style_guide else 'chýba – spusti --learn'} ({s.style_guide_path})"
         )
         lines.append(
-            f"✔ ANTHROPIC_API_KEY je nastavený (model {s.anthropic_model})"
+            f"✔ ANTHROPIC_API_KEY je nastavený (obsah a video: {s.anthropic_model}, "
+            f"komentáre a DM: {s.anthropic_model_replies})"
             if s.anthropic_api_key
             else "✖ ANTHROPIC_API_KEY chýba"
         )
