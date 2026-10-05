@@ -23,3 +23,8 @@ Reference notes on Claude's cloud features.
 ## YouTube to FLAC
 
 - [yt-flac/](yt-flac/): paste a YouTube link, get the best available audio saved as tagged FLAC with cover art. Double-click launcher for Windows.
+
+## Rituál kontroly
+
+- [ritual-kontroly/scenar.md](ritual-kontroly/scenar.md): psychological drama screenplay (Slovak), sequence 1 expanded with the "odchádzam" ritual, the night-time lock round and the son's internalised anger.
+- [ritual-kontroly/generate_movie.py](ritual-kontroly/generate_movie.py): renders the master shot via Runway, Luma or Replicate (whichever API key is set) and saves it as `ritual_kontroly.mp4`.
