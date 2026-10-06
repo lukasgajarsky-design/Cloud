@@ -1,0 +1,6 @@
+# Rendered clips and generated stills stay local
+*.mp4
+*.mp4.part
+animatic/frames/
+animatic/build/
+__pycache__/

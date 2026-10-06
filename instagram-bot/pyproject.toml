@@ -1,0 +1,27 @@
+[project]
+name = "instagram-bot"
+version = "1.0.0"
+description = "Produkčný Instagram bot: Meta Graph API + Claude Opus 5.5 s učením štýlu z videa"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I", "UP", "SIM", "RUF", "S", "PL"]
+# RUF001-003: slovenský text obsahuje typografické znaky (–, „“) zámerne.
+ignore = ["PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004", "PLC0415", "RUF001", "RUF002", "RUF003", "S603"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S105", "S106", "S607"]
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
+files = ["instagram_bot", "main.py"]

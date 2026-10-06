@@ -1,0 +1,5 @@
+# Produkčné závislosti Instagram bota (Python 3.10+)
+requests>=2.32,<3          # Meta Graph API + OpenAI prepis reči
+anthropic>=1.11,<2         # oficiálne Anthropic SDK (Claude Opus 5.5, structured outputs, fallbacks)
+python-dotenv>=1.0,<2      # načítanie tajomstiev z .env
+pillow>=11.0,<13           # percepčný hash snímok (deduplikácia) v režime --learn

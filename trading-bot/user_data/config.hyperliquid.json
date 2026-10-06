@@ -1,0 +1,19 @@
+{
+    "stake_currency": "USDC",
+    "trading_mode": "futures",
+    "margin_mode": "isolated",
+    "exchange": {
+        "name": "hyperliquid",
+        "walletAddress": "",
+        "privateKey": "",
+        "pair_whitelist": [
+            "BTC/USDC:USDC",
+            "ETH/USDC:USDC",
+            "SOL/USDC:USDC",
+            "XRP/USDC:USDC",
+            "DOGE/USDC:USDC",
+            "HYPE/USDC:USDC"
+        ]
+    },
+    "bot_name": "freqtrade-paper-hyperliquid"
+}

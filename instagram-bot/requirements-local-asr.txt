@@ -1,0 +1,4 @@
+# Voliteľné: lokálny prepis reči bez cloudu (ASR_PROVIDER=faster-whisper).
+# Model sa pri prvom spustení stiahne z Hugging Face (small ≈ 500 MB).
+-r requirements.txt
+faster-whisper>=1.1,<2
