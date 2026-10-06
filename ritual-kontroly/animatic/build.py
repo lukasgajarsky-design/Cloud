@@ -8,6 +8,7 @@ the screenplay text on screen and a synthesized sound track: room tones per scen
     pip install torch diffusers transformers accelerate numpy scipy pillow   # plus ffmpeg on PATH
     python3 gen_images.py   # once, ~20 min on CPU
     python3 build.py        # ~10 min, writes ../ritual_kontroly_animatik.mp4 (about 19 minutes long)
+    python3 build.py --mux  # only redo the final join and sound mix
 """
 
 import subprocess
@@ -745,15 +746,20 @@ def main() -> int:
         wavfile.write(WORK / "sound.wav", SR, (audio * 32767).astype(np.int16))
         paths = list(futures)
     print(f"rendered {len(paths)} segments", flush=True)
+    (WORK / "segments.txt").write_text("".join(f"file '{p}'\n" for p in paths))
+    return mux()
 
-    concat = WORK / "segments.txt"
-    concat.write_text("".join(f"file '{p}'\n" for p in paths))
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(concat), "-i",
-                    str(WORK / "sound.wav"), "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
-                    "-movflags", "+faststart", "-shortest", str(OUTPUT)], check=True)
+
+def mux() -> int:
+    """Join the rendered segments with the sound track, compressed and normalized to -18 LUFS."""
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(WORK / "segments.txt"),
+                    "-i", str(WORK / "sound.wav"), "-map", "0:v", "-map", "1:a", "-c:v", "copy",
+                    "-af", "acompressor=threshold=0.1:ratio=3:attack=5:release=250,loudnorm=I=-18:TP=-1.5:LRA=20",
+                    "-ar", str(SR), "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", "-shortest", str(OUTPUT)],
+                   check=True)
     print(f"Done: {OUTPUT} ({OUTPUT.stat().st_size / 1e6:.0f} MB)")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(mux() if sys.argv[1:] == ["--mux"] else main())
