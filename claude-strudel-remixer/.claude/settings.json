@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python -m demucs *)",
+      "Bash(.venv/bin/python analyze_audio.py *)",
+      "Bash(.venv/bin/python strudel_link.py *)",
+      "Bash(.venv/Scripts/python -m demucs *)",
+      "Bash(.venv/Scripts/python analyze_audio.py *)",
+      "Bash(.venv/Scripts/python strudel_link.py *)",
+      "PowerShell(.venv/Scripts/python -m demucs *)",
+      "PowerShell(.venv/Scripts/python analyze_audio.py *)",
+      "PowerShell(.venv/Scripts/python strudel_link.py *)",
+      "Bash(node --check *)",
+      "PowerShell(node --check *)",
+      "Edit(/strudel_patterns/**)",
+      "Edit(/analysis/**)"
+    ],
+    "deny": [
+      "Edit(/input/**)"
+    ]
+  },
+  "env": {
+    "PYTHONUTF8": "1"
+  }
+}

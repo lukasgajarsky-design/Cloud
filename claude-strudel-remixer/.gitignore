@@ -1,0 +1,21 @@
+# Python environment
+.venv/
+__pycache__/
+
+# Audio is large and usually copyrighted - never commit it
+input/*
+separated/*
+exports/*
+!input/.gitkeep
+!separated/.gitkeep
+!exports/.gitkeep
+*.wav
+*.mp3
+*.flac
+*.aiff
+*.aif
+*.m4a
+*.ogg
+
+# Per-machine approvals saved by Claude Code
+.claude/settings.local.json

@@ -4,16 +4,18 @@
 The provider is the first one whose API key is set in the environment
 (override with --provider):
 
-    runway     RUNWAYML_API_SECRET or RUNWAY_API_KEY   (model gen4.5, max 10 s)
-    luma       LUMAAI_API_KEY or LUMA_API_KEY          (model ray-2, 5 or 9 s, 21:9)
-    sora       OPENAI_API_KEY                          (model sora-2, 4/8/12 s)
-    replicate  REPLICATE_API_TOKEN                     (model google/veo-3)
+    runway       RUNWAYML_API_SECRET or RUNWAY_API_KEY  (model gen4.5, 2-10 s)
+    luma-agents  LUMA_AGENTS_API_KEY                    (Luma Agents API, ray-3.2, 5 or 10 s, 1080p)
+    luma         LUMAAI_API_KEY or LUMA_API_KEY         (Dream Machine API, ray-2, 5 or 9 s, 21:9)
+    sora         OPENAI_API_KEY                         (model sora-2, 4/8/12 s)
+    replicate    REPLICATE_API_TOKEN                    (model google/veo-3.1, or REPLICATE_MODEL)
 
 Examples:
     python generate_movie.py                  # master shot -> ritual_kontroly.mp4
     python generate_movie.py --shot 3         # one shot from the shot list
     python generate_movie.py --shot all       # shots 1, 2, 3, 4, 5a, 5b
     python generate_movie.py --provider sora --shot 5
+    python generate_movie.py --provider luma-agents --duration 5
     python generate_movie.py --list           # print every prompt
     python generate_movie.py --dry-run        # show what would be sent
 
@@ -162,6 +164,7 @@ ALL_SHOTS = ["1", "2", "3", "4", "5a", "5b"]
 
 PROVIDER_KEYS = {
     "runway": ["RUNWAYML_API_SECRET", "RUNWAY_API_KEY"],
+    "luma-agents": ["LUMA_AGENTS_API_KEY"],
     "luma": ["LUMAAI_API_KEY", "LUMA_API_KEY"],
     "sora": ["OPENAI_API_KEY"],
     "replicate": ["REPLICATE_API_TOKEN"],
@@ -270,6 +273,30 @@ def render_luma(http, key, prompt, seconds, model):
     return wait_for(f"luma {gen_id}", fetch), {}
 
 
+def render_luma_agents(http, key, prompt, seconds, model):
+    base = "https://agents.lumalabs.ai/v1"
+    headers = {"Authorization": f"Bearer {key}"}
+    body = {
+        "model": model or "ray-3.2",
+        "type": "video",
+        "prompt": prompt,
+        "aspect_ratio": "16:9",
+        "video": {"resolution": "1080p", "duration": "10s" if seconds > 7 else "5s"},
+    }
+    gen = check(http.post(f"{base}/generations", json=body, headers=headers, timeout=60))
+    gen_id = gen["id"]
+
+    def fetch():
+        g = check(http.get(f"{base}/generations/{gen_id}", headers=headers, timeout=60))
+        if g["state"] == "completed":
+            return g["state"], g["output"][0]["url"]
+        if g["state"] == "failed":
+            raise ApiError(f"Luma generation failed: {g.get('failure_reason') or g.get('failure_code')}")
+        return g["state"], None
+
+    return wait_for(f"luma-agents {gen_id}", fetch), {}
+
+
 def render_sora(http, key, prompt, seconds, model):
     base = "https://api.openai.com/v1"
     headers = {"Authorization": f"Bearer {key}"}
@@ -295,13 +322,16 @@ def render_sora(http, key, prompt, seconds, model):
 
 
 def render_replicate(http, key, prompt, seconds, model):
-    # Input fields differ per model; pass extra ones as JSON in REPLICATE_EXTRA_INPUT.
+    # Input fields differ per model, so seconds is None unless the user passed --duration;
+    # pass any other fields as JSON in REPLICATE_EXTRA_INPUT.
     base = "https://api.replicate.com/v1"
     headers = {"Authorization": f"Bearer {key}"}
-    extra = json.loads(os.environ.get("REPLICATE_EXTRA_INPUT", "{}"))
-    body = {"input": {"prompt": prompt, **extra}}
+    model = model or os.environ.get("REPLICATE_MODEL", "google/veo-3.1")
+    model_input = {"prompt": prompt, **json.loads(os.environ.get("REPLICATE_EXTRA_INPUT", "{}"))}
+    if seconds:
+        model_input["duration"] = seconds
     pred = check(
-        http.post(f"{base}/models/{model or 'google/veo-3'}/predictions", json=body, headers=headers, timeout=60)
+        http.post(f"{base}/models/{model}/predictions", json={"input": model_input}, headers=headers, timeout=60)
     )
     pred_id = pred["id"]
 
@@ -319,6 +349,7 @@ def render_replicate(http, key, prompt, seconds, model):
 
 RENDERERS = {
     "runway": render_runway,
+    "luma-agents": render_luma_agents,
     "luma": render_luma,
     "sora": render_sora,
     "replicate": render_replicate,
@@ -345,14 +376,17 @@ def main():
     ap.add_argument("--shot", default="master", help="master (default), 1-5, 5a, 5b or all")
     ap.add_argument("--provider", choices=sorted(RENDERERS), help="default: first one with a key set")
     ap.add_argument("--model", help="override the provider's default model")
-    ap.add_argument("--seconds", type=int, help="override the shot's length")
+    ap.add_argument("--seconds", "--duration", type=int, help="override the shot's length")
     ap.add_argument("--out-dir", type=Path, default=HERE, help="where the .mp4 files go (default: next to this script)")
+    ap.add_argument("--output", type=Path, help="exact output file; only with a single shot")
     ap.add_argument("--list", action="store_true", help="print the shot list and exit")
     ap.add_argument("--dry-run", action="store_true", help="show what would be rendered without calling an API")
     args = ap.parse_args()
 
     if args.shot != "all" and args.shot not in SHOTS:
         ap.error(f"unknown shot {args.shot!r}; choose from {', '.join(SHOTS)} or all")
+    if args.output and args.shot == "all":
+        ap.error("--output takes a single shot; use --out-dir with --shot all")
     shots = ALL_SHOTS if args.shot == "all" else [args.shot]
 
     if args.list:
@@ -370,20 +404,22 @@ def main():
         provider, key_name, key = args.provider or "runway", None, None
 
     log(f"provider: {provider} (key from {key_name or 'nowhere: dry run'})")
-    args.out_dir.mkdir(parents=True, exist_ok=True)
     http = requests.Session()
     failures = 0
 
     for sid in shots:
         shot = SHOTS[sid]
         seconds = args.seconds or shot["seconds"]
-        dest = args.out_dir / shot["out"]
-        log(f"shot {sid} '{shot['title']}': {seconds} s -> {dest}")
+        # Replicate models disagree on allowed lengths, so it only gets one the user asked for.
+        length = args.seconds if provider == "replicate" else seconds
+        dest = args.output or args.out_dir / shot["out"]
+        log(f"shot {sid} '{shot['title']}': {f'{length} s' if length else 'model default length'} -> {dest}")
         if args.dry_run:
             print(f"    prompt ({len(shot['prompt'])} chars): {shot['prompt']}")
             continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
         try:
-            url, dl_headers = RENDERERS[provider](http, key, shot["prompt"], seconds, args.model)
+            url, dl_headers = RENDERERS[provider](http, key, shot["prompt"], length, args.model)
             size = download(http, url, dl_headers, dest)
             log(f"ready: {dest} ({size / 1e6:.1f} MB)")
         except (ApiError, requests.RequestException) as e:
