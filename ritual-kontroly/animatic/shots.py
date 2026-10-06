@@ -64,10 +64,10 @@ IMAGES = {
     "silhouette_blinds": "lit office window at night seen from outside, silhouette of an old man moving behind the blinds",
     # 5: kitchen, the hour at a distance
     "kitchen_dark": "dark old-fashioned kitchen at night lit only by a small yellow light above the cooker hood, crocheted doily, vase",
-    "shoes_wall": "pair of men's shoes neatly aligned against the wall in a dark hallway",
+    "shoes_wall": "pair of black leather men's shoes standing neatly side by side against a wall on a hallway floor, dim light",
     "son_kitchen": f"{SON} sitting at a kitchen table in a jacket in the dark, phone in front of him, dim yellow light",
     "phone_table": "smartphone lying face up on a kitchen table, black screen, dim yellow light",
-    "headlights_ceiling": "car headlight beams sweeping across a dark kitchen ceiling at night",
+    "headlights_ceiling": "looking up at a dark kitchen ceiling at night, bright streaks of headlight light sweeping across the ceiling and wall, no cars",
     "father_dark_office": f"{FATHER} sitting in a dark office lit only by the blue glow of a computer monitor, opening a drawer",
     "mug_trash": "white mug with a broken handle lying in an office trash bin, blue monitor light, dark",
     "cabinet_bottle": "bottle of cheap whisky hidden behind a cereal box in a kitchen cabinet, dim light",
@@ -134,7 +134,7 @@ class Shot:
     sfx: list = field(default_factory=list)
     bed: str | None = None  # ambience; None keeps the previous one
     clock: str = ""
-    fx: str = ""  # blur | bright | vivid
+    fx: str = ""  # blur | bright | vivid | sweep (headlights crossing the frame)
 
 
 SHOTS: list[Shot] = []
@@ -306,7 +306,7 @@ add("kitchen_dark", "Dom je otcov. Vidno to na všetkom.", clock="19:21")
 add("shoes_wall", "Ani po rokoch si nevie vyzuť topánky bez toho, aby ich zarovnal k stene.")
 add("son_kitchen", "Hlavné svetlo nezapne. Bundu si nevyzlečie.")
 add("phone_table", "Mobil displejom nahor. Nič. Otec nenapíše. Nikdy nepíše. Ticho je súčasťou rituálu.")
-add("headlights_ceiling", dur=4.5, clock="19:34", sfx=[(0.0, "car_pass")], move="right")
+add("headlights_ceiling", dur=4.5, clock="19:34", sfx=[(0.0, "car_pass")], move="right", fx="sweep")
 add("son_kitchen", "Telo sa trhne — celé, naraz. Nie je to otcovo auto. Otcov diesel znie inak.", sfx=[(0.1, "chair", 0.6)])
 vo("son_kitchen", "Si doma. Si dospelý chlap a si doma. Nikto ťa tu nevidí.", move="in")
 add("son_kitchen", "Telo mu neverí.", dur=3, move="still")
@@ -319,9 +319,9 @@ add("pour_glass", "Nie veľa. Na dva prsty.", sfx=[(0.3, "pour")])
 add("shoulders_drop", "Prejde minúta. Dve. Ramená klesnú o centimeter. Je to prvý centimeter za celý deň.", move="out")
 add("shoulders_drop", "Hučanie v hlave stíchne o pol tónu.", move="still", bed="kitchen_soft")
 add("headlights_ceiling", "Ďalšie svetlá. Pohár narazí o stôl. Nie je to on.", clock="20:08",
-    sfx=[(0.0, "car_pass"), (0.9, "glass_table")], bed="kitchen")
+    sfx=[(0.0, "car_pass"), (0.9, "glass_table")], bed="kitchen", fx="sweep")
 add("headlights_ceiling", "Svetlá na strope. Tentoraz pomalé. Hlboký zvuk dieselu.", clock="20:20", dur=6, move="left",
-    sfx=[(0.0, "diesel")])
+    sfx=[(0.0, "diesel")], fx="sweep")
 add("son_kitchen", "Tentoraz je to on. Hodinu a štvrť po synovi.", move="in")
 add("hide_glass", "Pohár do skrinky, za cereálie.", dur=2.8, sfx=[(0.0, "chair"), (0.9, "cabinet")])
 add("rinse_mouth", "Tridsaťtriročný muž skrýva pohár ako štrnásťročný chlapec.", sfx=[(0.1, "tap")])

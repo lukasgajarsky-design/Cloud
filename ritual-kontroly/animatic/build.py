@@ -17,7 +17,7 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 from scipy.io import wavfile
 from scipy.signal import butter, oaconvolve, sosfilt
 
@@ -206,6 +206,15 @@ def ramp(x: float) -> float:
     return min(max(x, 0.0), 1.0)
 
 
+def headlight_band() -> Image.Image:
+    """A soft diagonal beam (plus a fainter second one) on a strip three frames wide."""
+    x = np.arange(3 * W)[None, :]
+    y = np.arange(H)[:, None]
+    d = (x - 1.5 * W) + 0.6 * (y - H / 2)
+    a = 0.8 * np.exp(-((d / 110.0) ** 2)) + 0.35 * np.exp(-(((d - 260) / 60.0) ** 2))
+    return Image.fromarray(np.stack([a * 255, a * 238, a * 195], axis=-1).astype(np.uint8))
+
+
 def render_segment(args) -> str:
     index, items = args
     path = WORK / f"seg_{index:03d}.mp4"
@@ -216,6 +225,7 @@ def render_segment(args) -> str:
         stdin=subprocess.PIPE,
     )
     black = Image.new("RGB", (W, H))
+    band = headlight_band()
     stills = {}
     for item in items:
         shot, n = item["shot"], item["frames"]
@@ -237,6 +247,10 @@ def render_segment(args) -> str:
                 frame = still.resize((W, H), Image.BICUBIC, box=camera_box(item["move"], f / max(n - 1, 1)))
             else:
                 frame = black
+            if shot.fx == "sweep":
+                p = ramp((t - 0.2) / max(seconds * 0.8 - 0.2, 0.5))
+                x0 = int(1.8 * W - 1.6 * W * p)
+                frame = ImageChops.screen(frame, band.crop((x0, 0, x0 + W, H)))
             fade = 1.0
             if shot.img and item["fade_in"]:
                 fade *= ramp(t / 0.5)
