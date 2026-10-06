@@ -5,6 +5,20 @@ Psychologická dráma o 33-ročnom synovi a otcovi, ktorý ovláda bez kriku: š
 - [scenar.md](scenar.md): sekvencia 1 ako filmový scenár s postavami, pravidlami filmu, šiestimi odchodmi s časmi a poznámkami pre réžiu.
 - [scena-1.md](scena-1.md): iná verzia scény 1 („Zlomená pamäť a tiché stroje“), literárny scenár v druhej osobe s časovými značkami a prompty pre AI video generátory.
 - [generate_movie.py](generate_movie.py): vyrenderuje záber cez Runway, Lumu, Soru alebo Replicate a stiahne ho ako `.mp4`.
+- [animatic/](animatic/): bezplatný animatik celého scenára `scenar.md` (asi 19 minút), vyrobený iba na CPU, bez API kľúčov.
+
+## Animatik zadarmo
+
+Obrázky z open-source modelu SDXL-Turbo, pomalé pohyby kamery, slovenský text na obrazovke a zvuk syntetizovaný v Pythone (bzučanie žiarivky, CVAK, kroky, tlkot srdca). V scéne 7 je namiesto obrázka 4-sekundový klip z Veo 3.1, spomalený na polovicu (súbor `ritual_kontroly.mp4` musí ležať v tomto priečinku).
+
+```bash
+pip install torch diffusers transformers accelerate numpy scipy pillow   # a ffmpeg v PATH
+cd animatic
+python gen_images.py   # 95 obrázkov do frames/, na CPU asi 20 minút
+python build.py        # zloží ../ritual_kontroly_animatik.mp4
+```
+
+Zábery, texty a zvukové podnety sú v `animatic/shots.py`. Keď zmeníš prompt, zmaž príslušný obrázok vo `frames/` a spusti `gen_images.py` znova.
 
 ## Renderovanie
 

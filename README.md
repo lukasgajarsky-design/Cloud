@@ -29,3 +29,4 @@ Reference notes on Claude's cloud features.
 - [ritual-kontroly/scenar.md](ritual-kontroly/scenar.md): psychological drama screenplay (Slovak), sequence 1 expanded with the "odchádzam" ritual, the night-time lock round and the son's internalised anger.
 - [ritual-kontroly/scena-1.md](ritual-kontroly/scena-1.md): a second take on scene 1 (Slovak, second person, timestamped), with prompts for each shot.
 - [ritual-kontroly/generate_movie.py](ritual-kontroly/generate_movie.py): renders the master shot or any shot from the shot list via Runway, Luma, Sora or Replicate (whichever API key is set); the master shot is saved as `ritual_kontroly.mp4`.
+- [ritual-kontroly/animatic/](ritual-kontroly/animatic/): free, CPU-only animatic of the whole screenplay (~19 min) – SDXL-Turbo stills with slow camera moves, the Slovak text on screen and synthesized sound. `gen_images.py` makes the stills, `build.py` renders `ritual_kontroly_animatik.mp4`.
