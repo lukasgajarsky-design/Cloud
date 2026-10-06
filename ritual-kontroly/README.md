@@ -5,17 +5,31 @@ Psychologická dráma o 33-ročnom synovi a otcovi, ktorý ovláda bez kriku: š
 - [scenar.md](scenar.md): sekvencia 1 ako filmový scenár s postavami, pravidlami filmu, šiestimi odchodmi s časmi a poznámkami pre réžiu.
 - [scena-1.md](scena-1.md): iná verzia scény 1 („Zlomená pamäť a tiché stroje“), literárny scenár v druhej osobe s časovými značkami a prompty pre AI video generátory.
 - [generate_movie.py](generate_movie.py): vyrenderuje záber cez Runway, Lumu, Soru alebo Replicate a stiahne ho ako `.mp4`.
-- [make_animatic.py](make_animatic.py): bezplatný animatik celej scény bez API kľúča (pozri nižšie).
+- [animatic/](animatic/): bezplatný animatik celého scenára `scenar.md` (asi 19 minút), vyrobený iba na CPU, bez API kľúčov.
+- [make_animatic.py](make_animatic.py): krátky bezplatný animatik scény 1 zo `scena-1.md` (58 s), bez API kľúča aj bez GPU.
 
-## Bezplatný animatik
+## Animatik zadarmo
+
+Obrázky z open-source modelu SDXL-Turbo, pomalé pohyby kamery, slovenský text na obrazovke a zvuk syntetizovaný v Pythone (bzučanie žiarivky, CVAK, kroky, tlkot srdca). V scéne 7 je namiesto obrázka 4-sekundový klip z Veo 3.1, spomalený na polovicu (súbor `ritual_kontroly.mp4` musí ležať v tomto priečinku).
 
 ```bash
-python make_animatic.py    # -> ritual_kontroly.mp4, 58 s, 1280x720 s obrazom 2.39:1
+pip install torch diffusers transformers accelerate numpy scipy pillow   # a ffmpeg v PATH
+cd animatic
+python gen_images.py   # 95 obrázkov do frames/, na CPU asi 20 minút
+python build.py        # zloží ../ritual_kontroly_animatik.mp4
+```
+
+Zábery, texty a zvukové podnety sú v `animatic/shots.py`. Keď zmeníš prompt, zmaž príslušný obrázok vo `frames/` a spusti `gen_images.py` znova.
+
+## Krátky animatik scény 1
+
+```bash
+python make_animatic.py    # -> ritual_kontroly_scena1_animatik.mp4, 58 s, 1280x720 s obrazom 2.39:1
 ```
 
 Nie je to AI video s pohybom postáv, ale storyboard rozhýbaný kamerou. Osem kľúčových záberov podľa scenára (kancelária 17:42, otec na prahu, otec na synovej stoličke 19:14, príchod 19:51, syn pri stole, kľučka, hrnček 23:10, syn pri dverách 23:12) je v [frames/](frames/). Pochádzajú z bezplatného obrázkového endpointu Pollinations; keď súbor zmažeš, skript ho stiahne znova. ffmpeg k nim pridá pomalé nájazdy kamery, farebné ladenie podľa miesta, blikanie žiarivky, zrno a slovenské titulky v čiernych pásoch. Zvuk syntetizuje: bzučanie žiarivky na 100 Hz, otcove kroky, trojité cvaknutie kľučky a buchnutie garážovej brány. Bzučanie po poslednom zábere ešte doznieva v čiernej, tak ako v scenári.
 
-Potrebuješ len Python 3 a ffmpeg s libx264, drawtext a fontmi DejaVu.
+Potrebuješ len Python 3 a ffmpeg s libx264, drawtext a fontmi DejaVu. Súbor `ritual_kontroly.mp4` skript nechá na pokoji, lebo ho používa veľký animatik.
 
 ## Renderovanie
 

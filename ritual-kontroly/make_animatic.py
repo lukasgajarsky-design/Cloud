@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a free animatic of scene 1 ("Rituál kontroly") as ritual_kontroly.mp4.
+"""Build a short free animatic of scene 1 ("Rituál kontroly", scena-1.md).
 
 No API key needed. Keyframes come from Pollinations' free image endpoint
 (cached in frames/; delete a file to fetch it again). ffmpeg then adds camera
@@ -7,7 +7,9 @@ moves, colour grades, fluorescent flicker, grain, a 2.39:1 frame with Slovak
 subtitles, and a synthesized soundtrack: the 100 Hz fluorescent hum, the
 father's footsteps, the door-handle clicks and the garage gate.
 
-    python make_animatic.py            # -> ritual_kontroly.mp4 (about 58 s)
+    python make_animatic.py            # -> ritual_kontroly_scena1_animatik.mp4 (about 58 s)
+
+It leaves ritual_kontroly.mp4 alone: animatic/build.py reads that clip.
 
 Needs ffmpeg with libx264 and drawtext, and the DejaVu fonts.
 """
@@ -24,7 +26,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 FRAMES = HERE / "frames"
-OUT = HERE / "ritual_kontroly.mp4"
+OUT = HERE / "ritual_kontroly_scena1_animatik.mp4"
 FPS = 30
 W, H, BAR = 1280, 536, 92  # 2.39:1 picture inside a 1280x720 frame
 SANS = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
