@@ -5,6 +5,17 @@ Psychologická dráma o 33-ročnom synovi a otcovi, ktorý ovláda bez kriku: š
 - [scenar.md](scenar.md): sekvencia 1 ako filmový scenár s postavami, pravidlami filmu, šiestimi odchodmi s časmi a poznámkami pre réžiu.
 - [scena-1.md](scena-1.md): iná verzia scény 1 („Zlomená pamäť a tiché stroje“), literárny scenár v druhej osobe s časovými značkami a prompty pre AI video generátory.
 - [generate_movie.py](generate_movie.py): vyrenderuje záber cez Runway, Lumu, Soru alebo Replicate a stiahne ho ako `.mp4`.
+- [make_animatic.py](make_animatic.py): bezplatný animatik celej scény bez API kľúča (pozri nižšie).
+
+## Bezplatný animatik
+
+```bash
+python make_animatic.py    # -> ritual_kontroly.mp4, 58 s, 1280x720 s obrazom 2.39:1
+```
+
+Nie je to AI video s pohybom postáv, ale storyboard rozhýbaný kamerou. Osem kľúčových záberov podľa scenára (kancelária 17:42, otec na prahu, otec na synovej stoličke 19:14, príchod 19:51, syn pri stole, kľučka, hrnček 23:10, syn pri dverách 23:12) je v [frames/](frames/). Pochádzajú z bezplatného obrázkového endpointu Pollinations; keď súbor zmažeš, skript ho stiahne znova. ffmpeg k nim pridá pomalé nájazdy kamery, farebné ladenie podľa miesta, blikanie žiarivky, zrno a slovenské titulky v čiernych pásoch. Zvuk syntetizuje: bzučanie žiarivky na 100 Hz, otcove kroky, trojité cvaknutie kľučky a buchnutie garážovej brány. Bzučanie po poslednom zábere ešte doznieva v čiernej, tak ako v scenári.
+
+Potrebuješ len Python 3 a ffmpeg s libx264, drawtext a fontmi DejaVu.
 
 ## Renderovanie
 
