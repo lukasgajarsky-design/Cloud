@@ -1,0 +1,112 @@
+<title>Nadchody Hlohovec</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;800&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: full-bleed 3D scene; a title plate top-left, a spec card top-right, the camera controls docked at the bottom. */
+:root {
+  --bg: #e9ece7; --panel: rgba(250, 251, 248, 0.9); --fg: #1c211d; --muted: #59615b;
+  --accent: #8a5631; --accent-fg: #ffffff; --line: rgba(28, 33, 29, 0.13); --chip: rgba(28, 33, 29, 0.06);
+  --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #101311; --panel: rgba(20, 24, 21, 0.88); --fg: #e8ebe6; --muted: #a2aaa4; --accent: #c98b5b; --accent-fg: #1a1410; --line: rgba(232, 235, 230, 0.14); --chip: rgba(232, 235, 230, 0.08); color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #101311; --panel: rgba(20, 24, 21, 0.88); --fg: #e8ebe6; --muted: #a2aaa4; --accent: #c98b5b; --accent-fg: #1a1410; --line: rgba(232, 235, 230, 0.14); --chip: rgba(232, 235, 230, 0.08); color-scheme: dark }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--display); overflow: hidden; }
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; background: #b9cbe0; }
+.ui { position: fixed; inset: 0; pointer-events: none; padding-block: calc(env(safe-area-inset-top, 0px) + 14px) calc(env(safe-area-inset-bottom, 0px) + 14px); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; grid-template-rows: auto 1fr auto; gap: 12px; }
+.panel { pointer-events: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.plate { padding: 14px 18px; max-width: 34rem; min-width: 0; }
+.plate h1 { margin: 0; font-size: clamp(20px, 3.2vw, 30px); font-weight: 800; letter-spacing: -0.02em; text-wrap: balance; }
+.plate p { margin: 4px 0 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.spec { padding: 12px 16px; font-size: 13px; min-width: 0; }
+.spec summary { cursor: pointer; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); list-style: none; }
+.spec summary::-webkit-details-marker { display: none; }
+.spec dl { margin: 10px 0 0; display: grid; grid-template-columns: auto auto; gap: 6px 18px; }
+.spec dt { color: var(--muted); }
+.spec dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.dock { justify-self: center; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 18px; padding: 10px 12px; max-width: 100%; }
+.group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.group > span { font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+button { font: inherit; font-size: 14px; font-weight: 500; color: var(--fg); background: var(--chip); border: 1px solid transparent; border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+button:hover { border-color: var(--line); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.walk { display: none; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; justify-self: center; width: min(520px, 100%); }
+.walk .bar { flex: 1; height: 4px; border-radius: 4px; background: var(--chip); overflow: hidden; }
+.walk .bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+body.touring .dock, body.touring .spec, body.touring .hint { display: none; }
+body.touring .walk { display: flex; }
+.hint { font-size: 12px; color: var(--muted); text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; pointer-events: auto; }
+.label { position: fixed; left: 0; top: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
+.label b { background: var(--panel); color: var(--fg); border: 1px solid var(--line); font-size: 13px; font-weight: 700; padding: 5px 11px; border-radius: 999px; white-space: nowrap; }
+.label i { display: block; width: 2px; height: 26px; background: var(--accent); }
+#status { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); color: var(--fg); font-size: 15px; background: var(--bg); }
+#status .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); margin: 0 auto 12px; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { #status .spinner { animation: none; } }
+@media (max-width: 640px) {
+  .top { flex-direction: column; align-items: stretch; }
+  .spec dl { grid-template-columns: 1fr auto; }
+  button { padding: 7px 11px; font-size: 13px; }
+  .dock { gap: 8px; }
+}
+</style>
+
+<canvas id="scene" aria-label="3D model okolia kruhového objazdu v Hlohovci s dvomi navrhovanými nadchodmi"></canvas>
+<div class="label" id="lab-h" hidden><b>Nadchod Hlohová</b><i></i></div>
+<div class="label" id="lab-s" hidden><b>Nadchod SNP</b><i></i></div>
+
+<div class="ui">
+  <div class="top">
+    <header class="panel plate">
+      <h1>Nadchody Hlohovec</h1>
+      <p>Návrh dvoch lávok pre peších za kruhovým objazdom – na ulici Hlohová a na ulici SNP. Model mesta je zo satelitnej snímky a OpenStreetMap.</p>
+    </header>
+    <details class="panel spec" id="spec" open>
+      <summary>Parametre návrhu</summary>
+      <dl>
+        <dt>Podjazdná výška</dt><dd>5,0 m</dd>
+        <dt>Šírka lávky</dt><dd>3,0 m</dd>
+        <dt>Rozpätie Hlohová</dt><dd>26,0 m</dd>
+        <dt>Rozpätie SNP</dt><dd>18,5 m</dd>
+        <dt>Schody na stranu</dt><dd>2 × 18</dd>
+        <dt>Výška stupňa</dt><dd>16 cm</dd>
+      </dl>
+    </details>
+  </div>
+  <div></div>
+  <div style="display:grid;gap:8px;justify-items:center">
+    <nav class="panel dock" aria-label="Ovládanie kamery">
+      <div class="group"><span>Pohľad</span>
+        <button data-go="overview" aria-pressed="true">Prehľad</button>
+        <button data-go="hlohova" aria-pressed="false">Hlohová</button>
+        <button data-go="snp" aria-pressed="false">SNP</button>
+      </div>
+      <div class="group"><span>Prejsť</span>
+        <button data-go="fpv_hlohova" aria-pressed="false">Chodec · Hlohová</button>
+        <button data-go="fpv_snp" aria-pressed="false">Chodec · SNP</button>
+        <button data-go="aerial" aria-pressed="false">Prelet</button>
+      </div>
+    </nav>
+    <div class="panel walk" role="status"><div class="bar"><i id="progress"></i></div><button id="stop">Ukončiť</button></div>
+    <div class="hint">Ťahaním otáčate, kolieskom alebo dvoma prstami približujete.</div>
+  </div>
+</div>
+<div id="status"><div><div class="spinner"></div>Načítavam 3D model Hlohovca…</div></div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+</script>
+<script>
+  window.HLOHOVEC_L0 = 'img_l0_4k.jpg';
+  window.HLOHOVEC_L1 = 'img_l1_2k.jpg';
+  window.HLOHOVEC_SHADOW = 2048;
+  window.HLOHOVEC_B64 = true;
+  if (window.matchMedia('(max-width: 640px)').matches) document.getElementById('spec').removeAttribute('open');
+</script>
+<script type="module" src="js/viewer.js"></script>

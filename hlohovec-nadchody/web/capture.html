@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<title>Hlohovec nadchody – render</title>
+<style>
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  canvas#c { display: block; }
+  #overlay { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; pointer-events: none; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./lib/three/three.module.js", "three/addons/": "./lib/three/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<div id="overlay"></div>
+<script type="module">
+import * as THREE from 'three';
+import { createApp } from './js/main.js';
+import { buildDirector } from './js/director.js';
+import { Overlay } from './js/overlay.js';
+window.THREE = THREE;
+const q = new URLSearchParams(location.search);
+const W = +(q.get('w') || 1920), H = +(q.get('h') || 1080);
+const t0 = performance.now();
+createApp(document.getElementById('c')).then(async (app) => {
+  window.APP = app;
+  const dir = buildDirector(app);
+  const ov = await new Overlay(document.getElementById('overlay'), app, dir).load(q.get('data') || 'data');
+  document.getElementById('overlay').style.transform = `scale(${W / 1920})`;
+  window.DIR = dir;
+  window.renderFrame = (name, t) => {
+    const info = dir.apply(name, t);
+    ov.update(name, t, 1920, 1080);
+    app.render();
+    return info;
+  };
+  window.durations = Object.fromEntries(Object.entries(dir.videos).map(([k, v]) => [k, v.duration]));
+  window.APP_READY = (performance.now() - t0) | 0;
+}).catch((e) => { window.APP_ERROR = String(e && e.stack || e); });
+</script>
+</body>
+</html>
