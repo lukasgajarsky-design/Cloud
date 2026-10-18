@@ -145,8 +145,12 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 4px; border-t
       else if (code === 'too_large') status.textContent = 'Táto aplikácia taký veľký súbor neuloží. Skúste menšiu verziu 720p.';
       else if (code === 'rate_limited') status.textContent = 'Otvorené je iné uloženie. Skúste to o chvíľu znova.';
       else if (code === 'unavailable' || code === 'not_granted' || code === 'capability_disabled' || code === 'capability_removed') {
-        status.textContent = 'Ukladanie súborov tu nie je dostupné.';
-      } else status.textContent = 'Súbor sa nepodarilo pripraviť. Skontrolujte pripojenie a skúste to znova.';
+        // saving is not possible in this view: hide every save control and explain once
+        status.textContent = '';
+        document.querySelectorAll('.actions').forEach((a) => { a.hidden = true; });
+        document.getElementById('dl-note').hidden = false;
+      } else if (code) status.textContent = 'Tento súbor sa tu uložiť nedá.';
+      else status.textContent = 'Súbor sa nepodarilo pripraviť. Skontrolujte pripojenie a skúste to znova.';
     } finally {
       buttons.forEach((b) => { b.disabled = false; });
       bar.hidden = true;
