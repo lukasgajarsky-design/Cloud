@@ -1,0 +1,19 @@
+{
+ "iphone": {
+  "file": "Hlohovec_3D_model_iPhone.zip",
+  "size": 7667309,
+  "sha256": "d44a04768aba03834689b30cb7270949951435330d05238ac4f5b7669decbbd1",
+  "parts": [
+   "Hlohovec_3D_model_iPhone.part00.b64.txt"
+  ]
+ },
+ "full": {
+  "file": "Hlohovec_3D_model_vsetky_formaty.zip",
+  "size": 17415070,
+  "sha256": "80faed2c7a60f712066639212a0d3b7bfb6fc7d464e8cd699cc0869835b079f8",
+  "parts": [
+   "Hlohovec_3D_model_vsetky_formaty.part00.b64.txt",
+   "Hlohovec_3D_model_vsetky_formaty.part01.b64.txt"
+  ]
+ }
+}

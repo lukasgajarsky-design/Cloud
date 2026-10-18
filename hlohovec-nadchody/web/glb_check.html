@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset="utf-8">
+<script type="importmap">{ "imports": { "three": "./lib/three/three.module.js", "three/addons/": "./lib/three/jsm/" } }</script></head>
+<body style="margin:0"><canvas id="c" width="1280" height="720"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const r = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, preserveDrawingBuffer: true });
+r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.NeutralToneMapping;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xdfe6ee);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x777777, 2.2));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.set(1, 2, 1.2); scene.add(sun);
+const cam = new THREE.PerspectiveCamera(40, 16 / 9, 0.01, 50000);
+window.load = async (url) => { const g = await new GLTFLoader().loadAsync(url); scene.add(g.scene); const b = new THREE.Box3().setFromObject(g.scene); window.box = [b.min.toArray(), b.max.toArray()]; return window.box; };
+window.shot = (p, t) => { cam.position.set(...p); cam.lookAt(...t); r.render(scene, cam); };
+window.READY = true;
+</script></body></html>

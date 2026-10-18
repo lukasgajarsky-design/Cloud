@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="sk">
+<head><meta charset="utf-8"><title>Export 3D modelu</title>
+<script type="importmap">
+{ "imports": { "three": "./lib/three/three.module.js", "three/addons/": "./lib/three/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="c" width="320" height="180"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { USDZExporter } from './js/USDZExporterJpeg.js';
+import { createApp } from './js/main.js';
+import { buildExportScene } from './js/exporter.js';
+
+const toB64 = (u8) => { let s = ''; const CH = 0x8000; for (let i = 0; i < u8.length; i += CH) s += String.fromCharCode.apply(null, u8.subarray(i, i + CH)); return btoa(s); };
+const loadTex = (url) => new Promise((res) => new THREE.TextureLoader().load(url, (t) => { t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.userData.mimeType = 'image/jpeg'; t.needsUpdate = true; res(t); }));
+
+createApp(document.getElementById('c')).then(async (app) => {
+  window.exportModel = async (kind, o) => {
+    const photo = await loadTex(o.photoUrl);
+    const pb = await fetch(o.photoUrl.replace('.jpg', '.json')).then((r) => r.json());
+    const { scene, wrapper, stats } = buildExportScene(app, { center: o.center, half: o.half, photo, photoBounds: pb, gridStep: o.gridStep, treeDetail: o.treeDetail });
+    if (o.onlyOverpasses) {
+      wrapper.children[0].children.forEach((c) => { c.visible = /^Nadchod_/.test(c.name); });
+      scene.updateMatrixWorld(true);
+      const box = new THREE.Box3();
+      wrapper.children[0].children.filter((c) => c.visible).forEach((c) => box.expandByObject(c));
+      const ctr = box.getCenter(new THREE.Vector3());
+      wrapper.position.set(-ctr.x, -box.min.y, -ctr.z);
+      scene.updateMatrixWorld(true);
+    }
+    if (o.scale) { wrapper.scale.setScalar(o.scale); scene.updateMatrixWorld(true); }
+    let out;
+    if (kind === 'glb') {
+      const buf = await new GLTFExporter().parseAsync(scene, { binary: true, onlyVisible: true });
+      out = new Uint8Array(buf);
+    } else {
+      out = await new USDZExporter().parseAsync(scene, { quickLookCompatible: true, maxTextureSize: o.maxTextureSize || 2048 });
+    }
+    let verts = 0; scene.traverseVisible((m) => { if (m.isMesh) verts += m.geometry.attributes.position.count; });
+    return { b64: toB64(out), bytes: out.length, verts, stats };
+  };
+  window.EXPORT_READY = true;
+}).catch((e) => { window.EXPORT_ERROR = String(e && e.stack || e); });
+</script>
+</body>
+</html>
