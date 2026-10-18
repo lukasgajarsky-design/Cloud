@@ -1,0 +1,167 @@
+<title>Videá nadchodov Hlohovec</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;800&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one reading column; header with the author credit, then one card per video (player on top, facts and downloads below). */
+:root {
+  --bg: #eef0eb; --card: #fbfcf9; --fg: #1c211d; --muted: #5a625c;
+  --accent: #8a5631; --accent-fg: #ffffff; --line: rgba(28, 33, 29, 0.12); --chip: rgba(28, 33, 29, 0.06);
+  --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #101311; --card: #171b18; --fg: #e8ebe6; --muted: #a2aaa4; --accent: #c98b5b; --accent-fg: #1a1410; --line: rgba(232, 235, 230, 0.13); --chip: rgba(232, 235, 230, 0.08); color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #101311; --card: #171b18; --fg: #e8ebe6; --muted: #a2aaa4; --accent: #c98b5b; --accent-fg: #1a1410; --line: rgba(232, 235, 230, 0.13); --chip: rgba(232, 235, 230, 0.08); color-scheme: dark }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font-family: var(--display); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 920px; margin: 0 auto; padding-block: 28px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1 { margin: 0; font-size: clamp(30px, 6vw, 48px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; text-wrap: balance; }
+.lead { margin: 0; color: var(--muted); max-width: 62ch; }
+.byline { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 4px; }
+.author { font-weight: 700; color: var(--accent); }
+.byline a { color: var(--fg); font-weight: 600; text-decoration: none; border-bottom: 2px solid var(--accent); padding-bottom: 1px; }
+.byline a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.list { display: grid; gap: 22px; }
+article { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; display: grid; }
+video { display: block; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; background: #0d0f0e; }
+.body { padding: 16px 18px 18px; display: grid; gap: 10px; min-width: 0; }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+h2 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+.meta { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.desc { margin: 0; color: var(--muted); max-width: 70ch; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button { font: inherit; font-size: 14px; font-weight: 600; border-radius: 999px; padding: 9px 16px; cursor: pointer; border: 1px solid transparent; }
+button.primary { background: var(--accent); color: var(--accent-fg); }
+button.secondary { background: var(--chip); color: var(--fg); }
+button.secondary:hover { border-color: var(--line); }
+button:disabled { opacity: 0.6; cursor: progress; }
+.progress { flex-basis: 100%; height: 4px; border-radius: 4px; background: var(--chip); overflow: hidden; }
+.progress i { display: block; height: 100%; width: 0; background: var(--accent); }
+.status { font-size: 13px; color: var(--muted); }
+.note { font-size: 13px; color: var(--muted); }
+footer { font-size: 13px; color: var(--muted); display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Vizualizácia návrhu · Hlohovec</p>
+    <h1>Nadchody na Hlohovej a SNP</h1>
+    <p class="lead">Tri videá dvoch navrhovaných lávok pre peších hneď za kruhovým objazdom: prechod chodca cez každý nadchod a letecký prelet nad oboma.</p>
+    <div class="byline">
+      <span class="author">Vytvoril: Lukáš Gajarský</span>
+      <a href="https://claude.ai/artifact/6Tix8aDAS4GyA7HizS3viB" target="_blank" rel="noopener">Otvoriť interaktívny 3D model</a>
+    </div>
+  </header>
+
+  <p class="note" id="dl-note" hidden>Sťahovanie súborov v tomto zobrazení nie je dostupné. Videá si môžete pozrieť priamo tu.</p>
+
+  <section class="list" id="list" aria-label="Videá"></section>
+
+  <footer>
+    <span>Podklady: © Esri, Maxar, Earthstar Geographics · © prispievatelia OpenStreetMap</span>
+    <span>Ilustračná vizualizácia – rozmery a umiestnenie nadchodov sú orientačné.</span>
+  </footer>
+</div>
+
+<script type="application/json" id="video-data">[{"key": "fpv_hlohova", "title": "Nadchod Hlohová – pohľad chodca", "desc": "Od kruhového objazdu, odkiaľ vidno oba nadchody, po chodníku k schodisku, hore cez medzipodestu, po lávke ponad ulicu Hlohová so zastavením nad premávkou a dole k chodníku.", "file": "Hlohovec_nadchod_Hlohova_chodec.mp4", "duration": 76.9, "poster": "posters/fpv_hlohova.jpg", "web": {"url": "/_blob/e1f1198b7017f689e630554fe49d7382", "parts": ["/_blob/e1f1198b7017f689e630554fe49d7382"], "size": 20304113}, "full": {"parts": ["/_blob/72df122316f5d34c7aac5ad698719286", "/_blob/37460c3102a96460c404590a16ad8663", "/_blob/18dc3bbf6ff237c75b0261ac3b1fc0a2", "/_blob/12c531887d417ff57a050c8204af1766"], "size": 69989740}}, {"key": "fpv_snp", "title": "Nadchod SNP – pohľad chodca", "desc": "Úvod pri kruhovom objazde s oboma nadchodmi, potom chôdza po severnom chodníku, výstup po schodisku v zelenom páse, prechod ponad ulicu SNP a zostup do parku.", "file": "Hlohovec_nadchod_SNP_chodec.mp4", "duration": 70.6, "poster": "posters/fpv_snp.jpg", "web": {"url": "/_blob/a23df9f6e33bce65ec42c601e82dfadb", "parts": ["/_blob/a23df9f6e33bce65ec42c601e82dfadb"], "size": 20416117}, "full": {"parts": ["/_blob/3ad4be73d105a82deffc5987044134cb", "/_blob/6cfa4ea8dcfb21397778215d22b8637c", "/_blob/5757e58a2022246707c69e9feeb8e531", "/_blob/3fb4da56b563da54c7760f5a908e25c0"], "size": 62557745}}, {"key": "aerial", "title": "Letecký prelet nad oboma nadchodmi", "desc": "Prelet nad Hlohovcom ku kruhovému objazdu, oblet oboch nadchodov, prelet popod lávku na Hlohovej, detail nadchodu SNP a záverečné parametre návrhu.", "file": "Hlohovec_nadchody_prelet.mp4", "duration": 76.0, "poster": "posters/aerial.jpg", "web": {"url": "/_blob/24dc62fc1e51ad556c0d1d2409e69842", "parts": ["/_blob/24dc62fc1e51ad556c0d1d2409e69842"], "size": 20219902}, "full": {"parts": ["/_blob/74a68d4c2787f5c2523ca6323ad6b3b2", "/_blob/4d75c1537ef854b49cd03928b6efdd5a", "/_blob/e9dd4133a2c41a871f64e1b28281f39e", "/_blob/c55807d18bed26cc70aa521bdee12cf1", "/_blob/1d6b7be0c2297720a6ab7c1006b1ca6d", "/_blob/93727af1926d9a8d95195f3904321018"], "size": 111760849}}]</script>
+<script>
+(() => {
+  const videos = JSON.parse(document.getElementById('video-data').textContent);
+  const list = document.getElementById('list');
+  const mb = (b) => `${Math.round(b / 1048576)} MB`;
+  const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+  let downloads = null;
+
+  for (const v of videos) {
+    const art = document.createElement('article');
+    art.innerHTML = `
+      <video controls playsinline preload="metadata"></video>
+      <div class="body">
+        <div class="head"><h2></h2><span class="meta"></span></div>
+        <p class="desc"></p>
+        <div class="actions" hidden>
+          <button class="primary" data-q="full"></button>
+          <button class="secondary" data-q="web"></button>
+          <span class="status" role="status"></span>
+          <div class="progress" hidden><i></i></div>
+        </div>
+      </div>`;
+    const video = art.querySelector('video');
+    video.poster = v.poster;
+    video.src = v.web.url;
+    video.setAttribute('aria-label', v.title);
+    art.querySelector('h2').textContent = v.title;
+    art.querySelector('.meta').textContent = `${fmt(v.duration)} · 1080p / 720p`;
+    art.querySelector('.desc').textContent = v.desc;
+    art.querySelector('[data-q="full"]').textContent = `Stiahnuť 1080p · ${mb(v.full.size)}`;
+    art.querySelector('[data-q="web"]').textContent = `Menšia verzia 720p · ${mb(v.web.size)}`;
+    v.el = art;
+    list.appendChild(art);
+  }
+
+  // fetch one or more same-origin asset parts with progress, joined into one MP4 blob
+  async function fetchParts(urls, total, onProgress) {
+    const parts = [];
+    let got = 0;
+    for (const url of urls) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.body || !res.body.getReader) { const b = await res.blob(); got += b.size; parts.push(b); onProgress(got / total); continue; }
+      const reader = res.body.getReader();
+      const chunks = [];
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        got += value.byteLength;
+        onProgress(Math.min(1, got / total));
+      }
+      parts.push(new Blob(chunks));
+    }
+    return new Blob(parts, { type: 'video/mp4' });
+  }
+
+  async function startDownload(v, quality, btn) {
+    const art = v.el, status = art.querySelector('.status'), bar = art.querySelector('.progress'), fill = bar.querySelector('i');
+    const src = quality === 'full' ? v.full : v.web;
+    const buttons = art.querySelectorAll('button');
+    buttons.forEach((b) => { b.disabled = true; });
+    bar.hidden = false; fill.style.width = '0%';
+    status.textContent = 'Pripravujem súbor… 0 %';
+    try {
+      const blob = await fetchParts(src.parts, src.size, (f) => {
+        fill.style.width = `${(f * 100).toFixed(1)}%`;
+        status.textContent = `Pripravujem súbor… ${Math.floor(f * 100)} %`;
+      });
+      status.textContent = 'Potvrďte uloženie súboru.';
+      await downloads.save({ filename: quality === 'full' ? v.file : v.file.replace('.mp4', '_720p.mp4'), data: blob });
+      status.textContent = 'Uložené.';
+    } catch (e) {
+      const code = e && e.code;
+      if (code === 'declined') status.textContent = '';
+      else if (code === 'too_large') status.textContent = 'Táto aplikácia taký veľký súbor neuloží. Skúste menšiu verziu 720p.';
+      else if (code === 'rate_limited') status.textContent = 'Otvorené je iné uloženie. Skúste to o chvíľu znova.';
+      else if (code === 'unavailable' || code === 'not_granted' || code === 'capability_disabled' || code === 'capability_removed') {
+        status.textContent = 'Ukladanie súborov tu nie je dostupné.';
+      } else status.textContent = 'Súbor sa nepodarilo pripraviť. Skontrolujte pripojenie a skúste to znova.';
+    } finally {
+      buttons.forEach((b) => { b.disabled = false; });
+      bar.hidden = true;
+    }
+  }
+
+  const ready = window.claude && window.claude.use ? window.claude.use('downloads') : Promise.resolve(null);
+  ready.then((d) => {
+    downloads = d;
+    if (!downloads) { document.getElementById('dl-note').hidden = false; return; }
+    for (const v of videos) {
+      const actions = v.el.querySelector('.actions');
+      actions.hidden = false;
+      actions.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => startDownload(v, b.dataset.q, b)));
+    }
+  }).catch(() => { document.getElementById('dl-note').hidden = false; });
+})();
+</script>
