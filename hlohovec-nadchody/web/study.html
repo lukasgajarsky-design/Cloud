@@ -1,0 +1,182 @@
+<title>/*TITLE*/</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;800&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one reading column of a concept study (plan sheet first, then the argument section by section); wide figures break out to the full column, tables scroll in their own box. */
+:root {
+  --bg: #eef0eb; --card: #fbfcf9; --fg: #1c211d; --muted: #59615b;
+  --accent: #8a5631; --accent-fg: #ffffff; --line: rgba(28, 33, 29, 0.12); --chip: rgba(28, 33, 29, 0.06);
+  --good: #2f6b45; --warn: #9a6a12;
+  --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #101311; --card: #171b18; --fg: #e8ebe6; --muted: #a2aaa4; --accent: #c98b5b; --accent-fg: #1a1410; --line: rgba(232, 235, 230, 0.13); --chip: rgba(232, 235, 230, 0.08); --good: #7cc495; --warn: #e0b45a; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #101311; --card: #171b18; --fg: #e8ebe6; --muted: #a2aaa4; --accent: #c98b5b; --accent-fg: #1a1410; --line: rgba(232, 235, 230, 0.13); --chip: rgba(232, 235, 230, 0.08); --good: #7cc495; --warn: #e0b45a; color-scheme: dark }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font-family: var(--display); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 880px; margin: 0 auto; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 34px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1 { margin: 0; font-size: clamp(30px, 6vw, 46px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; text-wrap: balance; }
+h2 { margin: 0; font-size: 23px; font-weight: 800; letter-spacing: -0.01em; text-wrap: balance; }
+h3 { margin: 0; font-size: 17px; font-weight: 700; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 64ch; font-size: 17px; }
+.byline { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 4px; }
+.author { font-weight: 700; color: var(--accent); }
+a { color: var(--fg); font-weight: 600; text-decoration: none; border-bottom: 2px solid var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.facts div { background: var(--card); padding: 12px 14px; display: grid; gap: 2px; min-width: 0; }
+.facts dt { font-size: 12px; color: var(--muted); }
+.facts dd { margin: 0; font-family: var(--mono); font-size: 18px; font-variant-numeric: tabular-nums; }
+figure { margin: 0; display: grid; gap: 8px; }
+figure img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); background: var(--chip); }
+figcaption { font-size: 13px; color: var(--muted); }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+section { display: grid; gap: 12px; min-width: 0; }
+.prose { display: grid; gap: 10px; max-width: 68ch; }
+.prose p { color: var(--fg); }
+.prose ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; background: var(--chip); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td .src { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+.variants { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.variant { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+.variant.win { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.variant img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; border-bottom: 1px solid var(--line); }
+.variant .vb { padding: 12px 14px 14px; display: grid; gap: 6px; align-content: start; }
+.vhead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.score { font-family: var(--mono); font-size: 14px; color: var(--muted); white-space: nowrap; }
+.badge { justify-self: start; font-size: 12px; font-weight: 700; color: var(--accent-fg); background: var(--accent); border-radius: 999px; padding: 2px 10px; }
+.variant p { font-size: 14px; color: var(--muted); }
+ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 10px; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; }
+ol.steps li::before { content: counter(s); font-family: var(--mono); font-size: 13px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--chip); color: var(--fg); }
+.tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.tool { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 4px; align-content: start; }
+.tool b { font-size: 15px; }
+.tool span { font-size: 12px; font-weight: 700; color: var(--good); text-transform: uppercase; letter-spacing: 0.06em; }
+.tool span.todo { color: var(--warn); }
+.tool p { font-size: 14px; color: var(--muted); }
+.sources { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.sources a { font-weight: 500; border-bottom-width: 1px; overflow-wrap: anywhere; }
+footer { font-size: 13px; color: var(--muted); display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script type="application/json" id="study-data">/*STUDY_DATA*/</script>
+<script>
+(() => {
+  const D = JSON.parse(document.getElementById('study-data').textContent);
+  const app = document.getElementById('app');
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const link = (href, text) => { const a = el('a', null, text); a.href = href; a.target = '_blank'; a.rel = 'noopener'; return a; };
+  // body text: blank-line separated paragraphs, lines starting with "- " become a list
+  const prose = (text) => {
+    const box = el('div', 'prose');
+    for (const block of String(text).split(/\n\s*\n/)) {
+      const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
+      if (!lines.length) continue;
+      if (lines.every((l) => /^[-•]\s/.test(l))) {
+        const ul = el('ul');
+        lines.forEach((l) => ul.appendChild(el('li', null, l.replace(/^[-•]\s+/, ''))));
+        box.appendChild(ul);
+      } else box.appendChild(el('p', null, lines.join(' ')));
+    }
+    return box;
+  };
+  const figure = (src, alt, cap) => { const f = el('figure'); const i = el('img'); i.src = src; i.alt = alt; i.loading = 'lazy'; f.appendChild(i); if (cap) f.appendChild(el('figcaption', null, cap)); return f; };
+
+  // header
+  const h = el('header');
+  h.appendChild(el('p', 'eyebrow', D.eyebrow));
+  h.appendChild(el('h1', null, D.title));
+  h.appendChild(el('p', 'lead', D.lead));
+  const by = el('div', 'byline');
+  by.appendChild(el('span', 'author', 'Vytvoril: Lukáš Gajarský'));
+  for (const [href, text] of D.links) by.appendChild(link(href, text));
+  h.appendChild(by);
+  app.appendChild(h);
+
+  // key figures of the chosen design
+  const dl = el('dl', 'facts');
+  for (const [k, v] of D.facts) { const d = el('div'); d.appendChild(el('dt', null, k)); d.appendChild(el('dd', null, v)); dl.appendChild(d); }
+  app.appendChild(dl);
+
+  // plan sheet and 3D views
+  app.appendChild(figure(D.plan.src, D.plan.alt, D.plan.caption));
+  if (D.views && D.views.length) {
+    const pair = el('div', 'pair');
+    D.views.forEach((v) => pair.appendChild(figure(v.src, v.alt, v.caption)));
+    app.appendChild(pair);
+  }
+
+  const section = (title) => { const s = el('section'); s.appendChild(el('h2', null, title)); app.appendChild(s); return s; };
+
+  for (const s of D.sections) {
+    const sec = section(s.heading);
+    if (s.kind === 'variants') {
+      const grid = el('div', 'variants');
+      for (const v of D.variants) {
+        const card = el('article', `variant${v.win ? ' win' : ''}`);
+        const img = el('img'); img.src = v.img; img.alt = `Pôdorys variantu ${v.name}`; img.loading = 'lazy';
+        card.appendChild(img);
+        const b = el('div', 'vb');
+        const head = el('div', 'vhead');
+        head.appendChild(el('h3', null, v.name));
+        head.appendChild(el('span', 'score', `${v.score} / 100`));
+        b.appendChild(head);
+        if (v.win) b.appendChild(el('span', 'badge', 'Odporúčaný'));
+        b.appendChild(el('p', null, v.verdict));
+        card.appendChild(b);
+        grid.appendChild(card);
+      }
+      if (s.body) sec.appendChild(prose(s.body));
+      sec.appendChild(grid);
+    } else if (s.kind === 'params') {
+      const box = el('div', 'scroll');
+      const t = el('table');
+      t.innerHTML = '<thead><tr><th scope="col">Parameter</th><th scope="col">Hodnota</th></tr></thead>';
+      const tb = el('tbody');
+      for (const p of D.params) {
+        const tr = el('tr');
+        const a = el('td'); a.textContent = p.param; if (p.source) a.appendChild(el('span', 'src', p.source));
+        tr.appendChild(a); tr.appendChild(el('td', 'num', p.value));
+        tb.appendChild(tr);
+      }
+      t.appendChild(tb); box.appendChild(t);
+      if (s.body) sec.appendChild(prose(s.body));
+      sec.appendChild(box);
+    } else if (s.kind === 'steps') {
+      if (s.body) sec.appendChild(prose(s.body));
+      const ol = el('ol', 'steps');
+      for (const st of s.steps) { const li = el('li'); const d = el('div'); d.appendChild(el('h3', null, st.title)); if (st.text) d.appendChild(el('p', null, st.text)); li.appendChild(d); ol.appendChild(li); }
+      sec.appendChild(ol);
+    } else if (s.kind === 'tools') {
+      if (s.body) sec.appendChild(prose(s.body));
+      const grid = el('div', 'tools');
+      for (const t of D.tools) { const c = el('div', 'tool'); c.appendChild(el('span', t.connected ? '' : 'todo', t.connected ? 'Použité v štúdii' : 'Dá sa pripojiť')); c.appendChild(el('b', null, t.name)); c.appendChild(el('p', null, t.text)); grid.appendChild(c); }
+      sec.appendChild(grid);
+    } else {
+      sec.appendChild(prose(s.body));
+    }
+  }
+
+  const src = section('Zdroje');
+  const ol = el('ol', 'sources');
+  for (const s of D.sources) { const li = el('li'); li.appendChild(link(s.url, s.title)); ol.appendChild(li); }
+  src.appendChild(ol);
+
+  const f = el('footer');
+  for (const line of D.footer) f.appendChild(el('span', null, line));
+  app.appendChild(f);
+})();
+</script>

@@ -40,7 +40,7 @@ export class People {
   }
 
   // loop path: forward then back (no teleporting)
-  addWalker(pts, phase, colorIdx, speed = 1.35) {
+  addWalker(pts, phase, colorIdx, speed = 1.35, tag = null) {
     const loop = [...pts, ...pts.slice(0, -1).reverse()];
     const P = timedPath(loop, speed);
     const obj = SkeletonUtils.clone(this.src);
@@ -59,13 +59,16 @@ export class People {
     const act = mixer.clipAction(this.clip);
     act.play();
     this.group.add(obj);
-    this.walkers.push({ obj, mixer, act, P, phase, speed });
+    this.walkers.push({ obj, mixer, act, P, phase, speed, tag });
   }
+
+  // walkers of a hidden design variant stay invisible
+  setTag(tag, on) { (this.hidden ||= new Set())[on ? 'delete' : 'add'](tag); }
 
   cull(camPos, maxD = 90) {
     for (const w of this.walkers) {
       const d = w.obj.position.distanceTo(camPos);
-      w.obj.visible = d < maxD && d > 2.4;
+      w.obj.visible = d < maxD && d > 2.4 && !(this.hidden && this.hidden.has(w.tag));
     }
   }
 

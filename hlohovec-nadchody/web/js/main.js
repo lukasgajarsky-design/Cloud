@@ -4,6 +4,7 @@ import { Sky } from 'three/addons/objects/Sky.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { loadData, makeGroundSampler, makeGeoMaterial, makeTerrain, makeBuildings, TreeField } from './world.js';
 import { Overpass, makeMaterials, DESIGN } from './overpass.js';
+import { BigBridge } from './bigbridge.js';
 import { Traffic } from './traffic.js';
 import { People } from './people.js';
 
@@ -89,7 +90,13 @@ export async function createApp(canvas) {
     overpasses[k] = new Overpass(k, s, ground, mats);
     scene.add(overpasses[k].group);
   }
-  const blocked = (x, z) => Object.values(overpasses).some((o) => o.blocks(x, z, 1.2));
+  // optional long footbridge (variant B); hidden until setVariant('big')
+  let bigbridge = null;
+  try {
+    const spec = await fetch(`${DATA}/bigbridge.json`).then((r) => (r.ok ? r.json() : null));
+    if (spec) { bigbridge = new BigBridge('bigbridge', spec, ground, mats); scene.add(bigbridge.group); }
+  } catch (e) { /* variant B is optional */ }
+  const blocked = (x, z) => Object.values(overpasses).some((o) => o.blocks(x, z, 1.2)) || (bigbridge && bigbridge.blocks(x, z, 1.2));
   const trees = new TreeField(data.trees, ground, blocked);
   scene.add(trees.group);
 
@@ -101,7 +108,16 @@ export async function createApp(canvas) {
   let ci = 0;
   for (const o of Object.values(overpasses)) {
     const cross = o.paths.cross;
-    for (let k = 0; k < 3; k++) people.addWalker(cross, k * 17.3 + ci * 5.1, ci++, 1.25 + (k % 3) * 0.1);
+    for (let k = 0; k < 3; k++) people.addWalker(cross, k * 17.3 + ci * 5.1, ci++, 1.25 + (k % 3) * 0.1, 'small');
+  }
+  if (bigbridge) {
+    const routes = bigbridge.paths.list;
+    for (let k = 0; k < routes.length; k++) {
+      const a = routes[k], z = routes[(k + 1) % routes.length];
+      if (a === z || !a.b || a.b !== z.b) continue;
+      const path = [...a.pts.slice().reverse(), ...bigbridge.deckRoute(a.b, a.s, z.s), ...z.pts];
+      people.addWalker(path, k * 13.7, ci++, 1.2 + (k % 3) * 0.1, 'big');
+    }
   }
   try {
     const fw = await fetch(`${DATA}/footways.json`).then((r) => r.json());
@@ -111,7 +127,19 @@ export async function createApp(canvas) {
     });
   } catch (e) { /* footways are optional */ }
 
-  const app = { renderer, scene, camera, data, ground, overpasses, traffic, people, trees, sun, sunDir, setSun, setShadowFocus, geoMat, wallMat: b.wallMat, sky, DESIGN, mats, hemi };
+  const app = { renderer, scene, camera, data, ground, overpasses, bigbridge, traffic, people, trees, sun, sunDir, setSun, setShadowFocus, geoMat, wallMat: b.wallMat, sky, DESIGN, mats, hemi };
+
+  // 'small' = the two short overpasses (variant A), 'big' = the long footbridge (variant B)
+  app.variant = 'small';
+  app.setVariant = (v) => {
+    if (!bigbridge) v = 'small';
+    app.variant = v;
+    for (const o of Object.values(overpasses)) o.group.visible = v === 'small';
+    if (bigbridge) bigbridge.group.visible = v === 'big';
+    people.setTag('small', v === 'small');
+    people.setTag('big', v === 'big');
+  };
+  app.setVariant(params.get('variant') || 'small');
 
   app.setTime = (t, camPos) => {
     traffic.update(t);

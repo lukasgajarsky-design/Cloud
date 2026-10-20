@@ -53,6 +53,7 @@ export function makeMaterials() {
     concrete: new THREE.MeshStandardMaterial({ color: 0xb3ada3, roughness: 0.95 }),
     paving: new THREE.MeshStandardMaterial({ color: 0xa89c84, roughness: 0.95 }),
     led: new THREE.MeshStandardMaterial({ color: 0xfff1d6, emissive: 0xffe2b0, emissiveIntensity: 0.0, roughness: 0.4 }),
+    glass: new THREE.MeshStandardMaterial({ color: 0xa9c4d4, transparent: true, opacity: 0.3, roughness: 0.06, metalness: 0.2, depthWrite: false }),
   };
 }
 
@@ -124,8 +125,8 @@ export class Overpass {
 
   // Staircase starting at the top edge point S (world, at deck level), descending along D.
   // Returns walking path points (world) from top to bottom.
-  stair(S, D) {
-    const { H, risers, upper, tread: g, upperW, lowerW, landingLen } = DESIGN;
+  stair(S, D, opts = {}) {
+    const { H, risers, upper, tread: g, upperW, lowerW, landingLen } = { ...DESIGN, ...opts };
     const yTop = this.y0 + H;
     const r = H / risers;
     const L = new THREE.Vector3().crossVectors(D, Y).normalize();
