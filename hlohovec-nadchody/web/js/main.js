@@ -114,9 +114,12 @@ export async function createApp(canvas) {
     const routes = bigbridge.paths.list;
     for (let k = 0; k < routes.length; k++) {
       const a = routes[k], z = routes[(k + 1) % routes.length];
-      if (a === z || !a.b || a.b !== z.b) continue;
-      const path = [...a.pts.slice().reverse(), ...bigbridge.deckRoute(a.b, a.s, z.s), ...z.pts];
+      // up one way, over the deck, down the next one where both join the same deck; otherwise up and back
+      const path = a !== z && a.b && a.b === z.b
+        ? [...a.pts.slice().reverse(), ...bigbridge.deckRoute(a.b, a.s, z.s), ...z.pts]
+        : a.pts.slice().reverse();
       people.addWalker(path, k * 13.7, ci++, 1.2 + (k % 3) * 0.1, 'big');
+      if (path.length > 2) people.addWalker(path.slice().reverse(), k * 7.1 + 9, ci++, 1.15, 'big');
     }
   }
   try {
@@ -127,7 +130,7 @@ export async function createApp(canvas) {
     });
   } catch (e) { /* footways are optional */ }
 
-  const app = { renderer, scene, camera, data, ground, overpasses, bigbridge, traffic, people, trees, sun, sunDir, setSun, setShadowFocus, geoMat, wallMat: b.wallMat, sky, DESIGN, mats, hemi };
+  const app = { renderer, scene, camera, data, ground, overpasses, bigbridge, buildings: [b.walls, roofs], traffic, people, trees, sun, sunDir, setSun, setShadowFocus, geoMat, wallMat: b.wallMat, sky, DESIGN, mats, hemi };
 
   // 'small' = the two short overpasses (variant A), 'big' = the long footbridge (variant B)
   app.variant = 'small';

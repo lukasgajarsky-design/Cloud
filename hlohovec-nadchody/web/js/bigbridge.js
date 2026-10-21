@@ -33,12 +33,12 @@ export class BigBridge extends Overpass {
   build() {
     const spec = this.site.spec;
     const d = this.d = { ...DESIGN, ...(spec.design || {}) };
-    d.H = d.clearance + d.fascia - 0.15;
+    d.H = spec.H || d.clearance + d.fascia - 0.15;
     d.risers = Math.round(d.H / 0.16);
     d.upper = Math.ceil(d.risers / 2);
     // level deck: the reference ground is the highest road point under the deck
     let gMax = -Infinity;
-    for (const b of spec.branches) for (const p of b.pts) gMax = Math.max(gMax, this.groundAt(p[0], -p[1]));
+    for (const b of spec.branches) b.pts.forEach((p, i) => { if (!b.z || b.z[i] >= d.H - 0.01) gMax = Math.max(gMax, this.groundAt(p[0], -p[1])); });
     this.y0 = gMax;
     const yTop = this.yTop = gMax + d.H;
     this.paths = { yTop, list: [] };
@@ -47,10 +47,18 @@ export class BigBridge extends Overpass {
       const P = b.pts.map((p) => V(p, yTop));
       const closed = !!b.closed;
       const F = frames(P, closed);
+      // walking-surface height per vertex: level parts at H, ramps from their z profile (the foot snaps to the local ground)
+      const Yv = b.pts.map((p, i) => {
+        if (!b.z) return yTop;
+        const z = b.z[i];
+        return z <= 0.001 ? this.groundAt(p[0], -p[1]) + 0.02 : gMax + z;
+      });
+      P.forEach((q, i) => q.setY(Yv[i]));
       const s = [0];
-      for (let i = 1; i < P.length + (closed ? 1 : 0); i++) s.push(s[i - 1] + P[i % P.length].distanceTo(P[i - 1]));
-      return { id: b.id, P, F, s, closed, w: b.w || d.deckW, openings: [[], []], capped: [!closed, !closed] };
+      for (let i = 1; i < P.length + (closed ? 1 : 0); i++) s.push(s[i - 1] + flat(P[i % P.length]).distanceTo(flat(P[i - 1])));
+      return { id: b.id, P, F, s, closed, sloped: !!b.z, z: b.z, w: b.w || d.deckW, openings: [[], []], capped: [!closed, !closed], trim: [0, 0] };
     });
+    this.joints();
     for (const p of spec.platforms || []) this.platform(p);
     for (const a of spec.access || []) this.access(a);
     for (const b of this.branches) this.deck(b);
@@ -59,28 +67,19 @@ export class BigBridge extends Overpass {
     this.finish();
   }
 
-  // nearest deck location to a world point: branch, arc length, side (+1 left / -1 right of travel)
+  // nearest level-deck location to a world point: branch, arc length, side (+1 left / -1 right of travel)
   locate(Q) {
     let best = null;
     for (const b of this.branches) {
-      const n = b.P.length, m = b.closed ? n : n - 1;
-      for (let i = 0; i < m; i++) {
-        const A = flat(b.P[i]), B = flat(b.P[(i + 1) % n]);
-        const AB = B.clone().sub(A), len = AB.length();
-        const u = THREE.MathUtils.clamp(flat(Q).sub(A).dot(AB) / (len * len), 0, 1);
-        const C = A.clone().addScaledVector(AB, u);
-        const dist = C.distanceTo(flat(Q));
-        if (!best || dist < best.dist) {
-          const L = new THREE.Vector3(AB.z, 0, -AB.x).normalize();
-          best = { b, s: b.s[i] + u * len, dist, C, L, T: AB.normalize(), side: Math.sign(flat(Q).sub(C).dot(L)) || 1, i };
-        }
-      }
+      if (b.sloped) continue;
+      const loc = this.locateOn(b, Q);
+      if (!best || loc.dist < best.dist) best = loc;
     }
     return best;
   }
 
-  // walking-surface point at arc length s, lateral offset l
-  at(b, s, l = 0, y = this.yTop) {
+  // walking-surface point at arc length s, lateral offset l, dy above the walking surface
+  at(b, s, l = 0, dy = 0) {
     const n = b.P.length;
     let i = 0;
     while (i < b.s.length - 2 && b.s[i + 1] < s) i++;
@@ -88,7 +87,67 @@ export class BigBridge extends Overpass {
     const A = b.P[i], B = b.P[(i + 1) % n];
     const p = A.clone().lerp(B, f);
     const L = b.F[i].L.clone().lerp(b.F[(i + 1) % n].L, f).normalize();
-    return p.addScaledVector(L, l).setY(y);
+    return p.addScaledVector(L, l).setY(p.y + dy);
+  }
+
+  // where an open branch end meets another branch or a platform: open that railing, drop the end cap
+  // and keep this branch's own railings off the other deck
+  joints() {
+    const spec = this.site.spec;
+    for (const b of this.branches) {
+      if (b.closed) continue;
+      for (const end of [0, 1]) {
+        const Q = b.P[end ? b.P.length - 1 : 0];
+        let hit = null;
+        for (const o of this.branches) {
+          if (o === b) continue;
+          const loc = this.locateOn(o, Q);
+          if (loc.dist < o.w / 2 + 1.0 && Math.abs(this.at(o, loc.s).y - Q.y) < 0.3 && (!hit || loc.dist < hit.dist)) hit = { ...loc, o };
+        }
+        if (hit) {
+          b.capped[end] = false;
+          (b.joint ||= [null, null])[end] = { o: hit.o, s: hit.s };
+          const dir = flat(b.P[end ? b.P.length - 2 : 1]).sub(flat(Q)).normalize();
+          const sin = Math.max(0.35, Math.abs(dir.dot(hit.L)));
+          b.trim[end] = Math.max(0, (hit.o.w / 2 - hit.dist * Math.sign(flat(Q).sub(hit.C).dot(dir) || 1)) / sin);
+          const half = b.w / 2 / sin + 0.1;
+          const side = Math.sign(dir.dot(hit.L)) || 1;
+          hit.o.openings[side > 0 ? 0 : 1].push([hit.s - half, hit.s + half]);
+          continue;
+        }
+        for (const p of spec.platforms || []) {
+          const c = p.at ? V(p.at) : null;
+          if ((c && flat(Q).distanceTo(c) < p.r + 0.5) || (p.poly && this.inPoly(p.poly, Q))) b.capped[end] = false;
+        }
+      }
+    }
+  }
+
+  inPoly(poly, Q) {
+    const x = Q.x, y = -Q.z;
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const [xi, yi] = poly[i], [xj, yj] = poly[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+
+  locateOn(b, Q) {
+    let best = null;
+    const n = b.P.length, m = b.closed ? n : n - 1;
+    for (let i = 0; i < m; i++) {
+      const A = flat(b.P[i]), B = flat(b.P[(i + 1) % n]);
+      const AB = B.clone().sub(A), len = AB.length();
+      const u = THREE.MathUtils.clamp(flat(Q).sub(A).dot(AB) / (len * len), 0, 1);
+      const C = A.clone().addScaledVector(AB, u);
+      const dist = C.distanceTo(flat(Q));
+      if (!best || dist < best.dist) {
+        const L = new THREE.Vector3(AB.z, 0, -AB.x).normalize();
+        best = { b, s: b.s[i] + u * len, dist, C, L, T: AB.normalize(), side: Math.sign(flat(Q).sub(C).dot(L)) || 1, i };
+      }
+    }
+    return best;
   }
 
   // swept closed profile [[lateral, dy], ...] along a branch (dy relative to the walking surface);
@@ -98,7 +157,7 @@ export class BigBridge extends Overpass {
     const n = P.length, m = closed ? n : n - 1;
     const lc = profile.reduce((a, q) => a + q[0], 0) / profile.length, yc = profile.reduce((a, q) => a + q[1], 0) / profile.length;
     const pos = [];
-    const pt = (i, [l, dy]) => P[i % n].clone().addScaledVector(F[i % n].L, l * F[i % n].k).setY(this.yTop + dy);
+    const pt = (i, [l, dy]) => P[i % n].clone().addScaledVector(F[i % n].L, l * F[i % n].k).setY(P[i % n].y + dy);
     const tri = (a, c, e, away) => {
       const nrm = new THREE.Vector3().subVectors(c, a).cross(new THREE.Vector3().subVectors(e, a));
       const fc = a.clone().add(c).add(e).divideScalar(3);
@@ -133,7 +192,7 @@ export class BigBridge extends Overpass {
     const n = P.length, m = closed ? n : n - 1;
     // plank surface with UVs running along the deck, wound to face up
     const pos = [], uv = [], hw = (w - 0.3) / 2;
-    const q = (k, l) => P[k % n].clone().addScaledVector(F[k % n].L, l * F[k % n].k).setY(this.yTop + 0.005);
+    const q = (k, l) => P[k % n].clone().addScaledVector(F[k % n].L, l * F[k % n].k).setY(P[k % n].y + 0.005);
     for (let i = 0; i < m; i++) {
       const u0 = b.s[i] / 2.4, u1 = b.s[i + 1] / 2.4, v0 = -hw / 2.4, v1 = hw / 2.4;
       const A = q(i, -hw), B = q(i + 1, -hw), C = q(i + 1, hw), D = q(i, hw);
@@ -155,7 +214,7 @@ export class BigBridge extends Overpass {
     // cross girders seen from below
     const total = b.s[b.s.length - 1];
     for (let s = 1; s < total - 0.5; s += 2.0) {
-      const c = this.at(b, s, 0, this.yTop - fascia + 0.25);
+      const c = this.at(b, s, 0, -fascia + 0.25);
       const L = this.at(b, s, 1).sub(this.at(b, s, 0)).normalize();
       this.box('brown', c, L, w - 0.3, 0.16, 0.35);
     }
@@ -164,10 +223,12 @@ export class BigBridge extends Overpass {
     for (const [k, sd] of [[0, 1], [1, -1]]) {
       const open = b.openings[k].slice().sort((x, y) => x[0] - y[0]);
       const runs = [];
-      let s0 = 0;
-      for (const [a, c] of open) { if (a > s0 + 0.3) runs.push([s0, a]); s0 = Math.max(s0, c); }
-      if (total > s0 + 0.3) runs.push([s0, total]);
+      let s0 = b.trim[0];
+      const s1 = total - b.trim[1];
+      for (const [a, c] of open) { if (a > s0 + 0.3) runs.push([s0, Math.min(a, s1)]); s0 = Math.max(s0, c); }
+      if (s1 > s0 + 0.3) runs.push([s0, s1]);
       for (const [a, c] of runs) {
+        if (c - a < 0.3) continue;
         const steps = Math.max(1, Math.ceil((c - a) / 2.0));
         let prev = this.at(b, a, sd * rl);
         for (let i = 1; i <= steps; i++) {
@@ -182,7 +243,33 @@ export class BigBridge extends Overpass {
       if (b.capped[0]) this.railing(this.at(b, 0, -rl), this.at(b, 0, rl), { spacing: 1.5 });
       if (b.capped[1]) this.railing(this.at(b, total, -rl), this.at(b, total, rl), { spacing: 1.5 });
     }
+    if (b.sloped) this.rampSupports(b);
     this.footprintAlong(b);
+  }
+
+  // ramps stand on single steel columns every <=9 m; near the ground they sit on a solid plinth
+  rampSupports(b) {
+    const total = b.s[b.s.length - 1], fascia = Math.min(this.d.fascia, 0.75);
+    for (let s = Math.max(1.5, b.trim[0] + 1.5); s < total - 0.5; s += 8.5) {
+      const top = this.at(b, s, 0, -fascia + 0.15);
+      const g = this.groundAt(top.x, top.z);
+      if (top.y - g < 0.9) continue;
+      const col = new THREE.CylinderGeometry(0.2, 0.24, top.y - g, 12);
+      col.translate(top.x, (top.y + g) / 2, top.z);
+      this.add('steel', col);
+      const L = this.at(b, s, 1).sub(this.at(b, s, 0)).normalize();
+      this.box('steel', top.clone().setY(top.y - 0.12), L, b.w - 0.4, 0.3, 0.25);
+      this.box('concrete', new THREE.Vector3(top.x, g + 0.1, top.z), L, 1.0, 1.0, 0.3);
+    }
+    // solid end where the ramp meets the ground
+    for (let i = 0; i < b.P.length - 1; i++) {
+      const A = b.P[i], B = b.P[i + 1];
+      const gA = this.groundAt(A.x, A.z), gB = this.groundAt(B.x, B.z);
+      if (Math.max(A.y - gA, B.y - gB) > 1.1) continue;
+      const D = flat(B).sub(flat(A)), len = D.length();
+      const h = Math.max(0.1, (A.y + B.y) / 2 - (gA + gB) / 2 - 0.05);
+      this.box('concrete', flat(A).add(flat(B)).multiplyScalar(0.5).setY((gA + gB) / 2 + h / 2 - 0.05), D.normalize(), len + 0.05, b.w - 0.1, h + 0.1);
+    }
   }
 
   footprintAlong(b) {
@@ -201,13 +288,13 @@ export class BigBridge extends Overpass {
     const shape = new THREE.Shape(pts.map(([e, n]) => new THREE.Vector2(e, n)));
     const slab = new THREE.ExtrudeGeometry(shape, { depth: fascia, bevelEnabled: false });
     slab.rotateX(-Math.PI / 2);
-    slab.translate(0, this.yTop + 0.15 - fascia, 0);
+    slab.translate(0, this.yTop - fascia, 0);
     this.add('brown', slab);
     const top = new THREE.ShapeGeometry(shape);
     top.rotateX(-Math.PI / 2);
     const uv = top.attributes.uv;
     for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 2.4, uv.getY(i) / 2.4);
-    top.translate(0, this.yTop + 0.16, 0);
+    top.translate(0, this.yTop + 0.006, 0);
     this.add('deck', top);
     if (p.rail !== false) {
       const ring = pts.map((q) => V(q, this.yTop));
@@ -234,7 +321,7 @@ export class BigBridge extends Overpass {
     if (a.kind.includes('stairs') || a.kind === 'stairs') {
       const off = a.kind.includes('lift') ? (a.stair_offset ?? 0) : 0;
       const S2 = S.clone().addScaledVector(loc ? loc.T : new THREE.Vector3(), off);
-      path = a.type === 'dogleg' ? this.dogleg(S2, D, a.turn || 1) : this.stair(S2, D, this.d);
+      path = a.type === 'straight' ? this.stair(S2, D, this.d) : this.switchback(S2, D, a.turn || 1, a.flights);
       width = Math.max(width, this.d.upperW + 0.2);
       if (loc) path.unshift(this.at(loc.b, loc.s + off));
     }
@@ -246,43 +333,58 @@ export class BigBridge extends Overpass {
     if (path) this.paths.list.push({ id: a.id, pts: path, b: loc && loc.b, s: loc && loc.s });
   }
 
-  // U-shaped stair tower: flight 1 down along D, landing, flight 2 back on the `turn` side
-  dogleg(S, D, turn) {
-    const d = this.d, g = d.tread, w = d.upperW, r = d.H / d.risers;
+  // switchback stair tower (TP 048: risers <=150 mm, <=16 per flight): a short top landing along D,
+  // then flights alternating along +D / -D in side-by-side lanes on the `turn` side, landings at each turn
+  switchback(S, D, turn, flights) {
+    const d = this.d, g = 0.30, w = d.upperW, yTop = this.yTop;
+    const nR = Math.ceil(d.H / 0.15), nF = Math.max(flights || 0, Math.ceil(nR / 16)), r = d.H / nR;
+    const per = Array.from({ length: nF }, (_, k) => Math.floor(nR / nF) + (k < nR % nF ? 1 : 0));
     const L = new THREE.Vector3().crossVectors(D, Y).normalize().multiplyScalar(turn);
-    const n1 = d.upper, n2 = d.risers - n1;
+    const lane = w + 0.3, depth = w + 0.2, LT = depth + 0.2, run = (Math.max(...per) - 1) * g;
     const at = (s, l, y) => S.clone().addScaledVector(D, s).addScaledVector(L, l).setY(y);
-    const yTop = this.yTop, yL = yTop - n1 * r, base = this.y0 - 0.4;
-    const run1 = (n1 - 1) * g, depth = w + 0.2;
-    const path = [at(0, 0, yTop)];
-    // flight 1: open treads on stringers
-    for (let i = 1; i < n1; i++) this.box('brownTop', at((i - 0.5) * g, 0, yTop - i * r - 0.03), D, g + 0.04, w - 0.1, 0.06);
-    for (const sd of [-1, 1]) this.tube('brown', at(0, sd * (w / 2 - 0.05), yTop - 0.25), at(run1, sd * (w / 2 - 0.05), yL - 0.25), 0.09);
-    // landing spanning both flights
-    const lc = (w + 0.3) / 2;
-    this.box('brown', at(run1 + depth / 2, lc, yL - 0.2), D, depth, 2 * w + 0.3, 0.4);
-    this.box('brownTop', at(run1 + depth / 2, lc, yL - 0.02), D, depth + 0.02, 2 * w + 0.32, 0.04);
-    for (const c of [[run1 + depth - 0.2, -w / 2 + 0.2], [run1 + depth - 0.2, w * 1.5 + 0.1], [run1 - 0.2, -w / 2 + 0.2], [run1 - 0.2, w * 1.5 + 0.1]]) {
-      const p = at(c[0], c[1], 0);
-      this.box('steel', new THREE.Vector3(p.x, (base + yL - 0.4) / 2, p.z), D, 0.24, 0.24, yL - 0.4 - base);
+    const base = this.y0 - 0.3;
+    const post = (s, l, y) => { const p = at(s, l, 0); const gy = this.groundAt(p.x, p.z); this.box('steel', new THREE.Vector3(p.x, (gy + y) / 2, p.z), D, 0.2, 0.2, y - gy); };
+    // top landing joining the deck
+    this.box('brown', at(LT / 2, 0, yTop - 0.15), D, LT, w, 0.3);
+    this.box('brownTop', at(LT / 2, 0, yTop + 0.005), D, LT, w - 0.05, 0.02);
+    const path = [at(0, 0, yTop), at(LT, 0, yTop)];
+    let y = yTop;
+    for (let k = 0; k < nF; k++) {
+      const fwd = k % 2 === 0, l = k * lane, n = per[k];
+      const s0 = fwd ? LT : LT + run, sg = fwd ? 1 : -1;
+      const Dk = D.clone().multiplyScalar(sg);
+      const yEnd = y - n * r, last = k === nF - 1;
+      for (let i = 1; i <= n; i++) {
+        const sy = y - i * r, sc = s0 + sg * (i - 0.5) * g;
+        if (sy < this.y0 + 1.2 && last) this.box('brown', at(sc, l, (sy - 0.05 + base) / 2), D, g, w, sy - 0.05 - base);
+        if (i < n || last) this.box('brownTop', at(sc, l, sy - 0.03), D, g + 0.03, w - 0.05, 0.06);
+      }
+      const sEnd = s0 + sg * (n - (last ? 0 : 1)) * g;
+      for (const sd of [-1, 1]) {
+        this.tube('brown', at(s0, l + sd * (w / 2 - 0.05), y - 0.25), at(sEnd, l + sd * (w / 2 - 0.05), yEnd - 0.25), 0.08);
+        this.railing(at(s0, l + sd * (w / 2 + 0.02), y), at(sEnd, l + sd * (w / 2 + 0.02), yEnd + (last ? r : 0)), { spacing: 1.3 });
+      }
+      path.push(at(s0, l, y), at(sEnd, l, yEnd));
+      if (!last) {
+        // landing spanning this lane and the next at the turn
+        const sa = fwd ? LT + run : LT - depth, lc = l + lane / 2;
+        this.box('brown', at(sa + depth / 2, lc, yEnd - 0.18), D, depth, 2 * w + 0.3, 0.36);
+        this.box('brownTop', at(sa + depth / 2, lc, yEnd + 0.003), D, depth, 2 * w + 0.25, 0.02);
+        for (const lp of [l - w / 2 + 0.2, l + lane + w / 2 - 0.2]) for (const sp of [sa + 0.2, sa + depth - 0.2]) post(sp, lp, yEnd - 0.36);
+        const edge = fwd ? sa + depth - 0.06 : sa + 0.06;
+        this.railing(at(edge, l - w / 2, yEnd), at(edge, l + lane + w / 2, yEnd), { spacing: 1.2 });
+        path.push(at(sa + depth / 2, lc, yEnd));
+      } else {
+        const foot = at(sEnd + sg * 1.6, l, this.y0);
+        path.push(foot);
+        this.box('paving', foot.clone().setY(this.groundAt(foot.x, foot.z) + 0.02), D, 2.4, w + 1.0, 0.08);
+      }
+      // posts under the high end of each flight
+      if (!last || y - this.y0 > 1.5) post(s0 + sg * 0.3, l, y - 0.35);
+      y = yEnd;
     }
-    // flight 2: solid steps back towards the deck
-    const l2 = w + 0.3;
-    for (let j = 1; j <= n2; j++) {
-      const y = yL - j * r, sa = run1 - (j - 1) * g;
-      this.box('brown', at(sa - g / 2, l2, (y - 0.05 + base) / 2), D, g, w, y - 0.05 - base);
-      this.box('brownTop', at(sa - g / 2, l2, y - 0.025), D, g + 0.03, w + 0.02, 0.05);
-    }
-    const sEnd = run1 - n2 * g;
-    path.push(at(run1, 0, yL), at(run1 + depth / 2, lc, yL), at(run1, l2, yL), at(sEnd, l2, this.y0), at(sEnd - 1.5, l2, this.y0));
-    // handrails
-    for (const sd of [-1, 1]) {
-      this.railing(at(0, sd * (w / 2 + 0.02), yTop), at(run1, sd * (w / 2 + 0.02), yL), { spacing: 1.3 });
-      this.railing(at(run1, l2 + sd * (w / 2 - 0.04), yL), at(sEnd + g, l2 + sd * (w / 2 - 0.04), this.y0 + r), { spacing: 1.4 });
-    }
-    this.railing(at(run1 + depth - 0.06, -w / 2, yL), at(run1 + depth - 0.06, l2 + w / 2, yL), { spacing: 1.2 });
-    this.box('paving', at(sEnd - 0.9, l2, this.groundAt(at(sEnd - 0.9, l2, 0).x, at(sEnd - 0.9, l2, 0).z) + 0.02), D, 2.2, w + 1.0, 0.08);
-    this.footprint.push([at(run1 / 2, w / 2, 0), D, run1 / 2 + 2.5, w + 1.5]);
+    for (const sp of [0.3, LT - 0.3]) post(sp, 0, yTop - 0.3);
+    this.footprint.push([at(LT + run / 2, (nF - 1) * lane / 2, 0), D, LT + run / 2 + 2.5, (nF * lane) / 2 + 1.0]);
     return path;
   }
 
@@ -349,14 +451,15 @@ export class BigBridge extends Overpass {
     this.add('steel', col);
     this.box('concrete', new THREE.Vector3(c.x, base + 0.2, c.z), new THREE.Vector3(1, 0, 0), 3.2, 3.2, 0.5);
     const head = new THREE.Vector3(c.x, base + h - 0.6, c.z);
-    for (const b of this.branches) {
+    const targets = this.branches.filter((b) => (m.to ? m.to.includes(b.id) : b.closed));
+    for (const b of targets) {
       const total = b.s[b.s.length - 1];
       const nC = m.cables || 24;
       for (let i = 0; i < nC; i++) {
         const s = ((i + 0.5) / nC) * total;
         const inner = this.at(b, s, 0);
-        const side = Math.sign(flat(c).sub(flat(inner)).dot(this.at(b, s, 1).sub(this.at(b, s, 0)))) || 1;
-        this.tube('metal', head, this.at(b, s, side * (b.w / 2 + 0.05), this.yTop - 0.2), 0.035);
+        const side = Math.sign(flat(c).sub(flat(inner)).dot(flat(this.at(b, s, 1)).sub(flat(this.at(b, s, 0))))) || 1;
+        this.tube('metal', head, this.at(b, s, side * (b.w / 2 + 0.05), -0.2), 0.035);
       }
     }
   }
@@ -370,6 +473,15 @@ export class BigBridge extends Overpass {
       mesh.renderOrder = key === 'glass' ? 2 : 0;
       mesh.name = `${this.key}-${key}`;
       this.group.add(mesh);
+    }
+    // ramps are walkable routes too: from where they leave the deck down to the ground
+    for (const b of this.branches) {
+      if (!b.sloped || !b.joint) continue;
+      const top = b.joint[0] ? 0 : b.joint[1] ? 1 : -1;
+      if (top < 0) continue;
+      const pts = b.P.map((q) => q.clone());
+      if (top === 1) pts.reverse();
+      this.paths.list.push({ id: b.id, pts, b: b.joint[top].o, s: b.joint[top].s });
     }
     // a representative crossing path: first access -> along the deck -> last access
     const L = this.paths.list;

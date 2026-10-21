@@ -8,7 +8,7 @@ fs.mkdirSync(outDir, { recursive: true });
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--use-gl=angle'] });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
-await page.goto(`http://127.0.0.1:8765/capture.html?mode=capture&w=${W}&h=${H}&shadow=${process.env.SHADOW || 2048}`, { waitUntil: 'load' });
+await page.goto(`${process.env.BASE || 'http://127.0.0.1:8765/capture.html'}?mode=capture&w=${W}&h=${H}&shadow=${process.env.SHADOW || 2048}&variant=${process.env.VARIANT || 'small'}`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.APP_READY || window.APP_ERROR, null, { timeout: 600000 });
 const err = await page.evaluate(() => window.APP_ERROR);
 if (err) { console.log('APP ERROR', err); process.exit(1); }

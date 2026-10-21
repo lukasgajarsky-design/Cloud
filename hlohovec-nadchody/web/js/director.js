@@ -238,6 +238,67 @@ export function buildDirector(app) {
     videos.aerial = { duration: 76, kind: 'aerial', curve, cues, minimap: false, timeOffset: 23 };
   }
 
+  // ---------- video 4: aerial orbit of the long footbridge (variant B) ----------
+  let spiderC = null;
+  if (app.bigbridge) {
+    const bb = app.bigbridge, spec = bb.site.spec, vid = spec.video || {};
+    const box = new THREE.Box3();
+    for (const b of bb.branches) for (const q of b.P) box.expandByPoint(q);
+    const ctr = box.getCenter(new THREE.Vector3());
+    const cE = vid.center ? vid.center[0] : ctr.x, cN = vid.center ? vid.center[1] : -ctr.z;
+    spiderC = new THREE.Vector3(cE, G(cE, -cN), -cN);
+    const size = box.getSize(new THREE.Vector3());
+    const R = vid.radius || Math.max(35, 0.5 * Math.hypot(size.x, size.z));
+    const yDeck = bb.yTop;
+    const look = (k) => spiderC.clone().setY(yDeck - 2 + (1 - k) * -4);
+    const T = vid.duration || 74;
+    const a0 = vid.startAngle ?? Math.PI / 2;           // start south of the centre (screen-up = north)
+    const keys = [];
+    // keep every key above nearby roofs and with a clear line of sight to what it looks at
+    const ray = new THREE.Raycaster();
+    const blockers = (app.buildings || []).filter(Boolean);
+    const clear = (pos, lk) => {
+      for (let it = 0; it < 40; it++) {
+        let bad = false;
+        ray.set(pos.clone().setY(pos.y + 200), new THREE.Vector3(0, -1, 0)); ray.far = 400;
+        const down = ray.intersectObjects(blockers, true)[0];
+        if (down && down.point.y > pos.y - 12) bad = true;
+        const d = lk.clone().sub(pos), len = d.length();
+        ray.set(pos, d.normalize()); ray.far = len - 6;
+        if (ray.intersectObjects(blockers, true).length) bad = true;
+        if (!bad) break;
+        pos.y += 3;
+      }
+      return pos;
+    };
+    const K = (t, pos, lk, fov) => keys.push({ t, pos: clear(pos, lk), look: lk, fov });
+    // straight down from high above (north up), then one continuous descending orbit that closes in,
+    // and a final climb for the closing card; sampled every second and kept clear of roofs
+    const turns = vid.turns || 1.15;
+    const smooth = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * x * (x * (6 * x - 15) + 10));
+    K(0, new THREE.Vector3(cE, spiderC.y + 4.2 * R, -cN + 3), spiderC.clone(), 46);
+    for (let t = 4; t <= T + 1e-6; t += 1) {
+      const u = (t - 4) / (T - 4);
+      const ang = a0 + smooth(u) * turns * Math.PI * 2;
+      const dive = smooth(Math.min(1, u / 0.72)), climb = smooth(Math.max(0, (u - 0.82) / 0.18));
+      const r = R * (0.25 + 1.85 * smooth(Math.min(1, u / 0.18)) - 0.85 * dive + 0.9 * climb);
+      const alt = Math.max(vid.minAlt || 28, R * (3.9 - 3.35 * dive + 1.2 * climb));
+      const k = Math.min(1, u / 0.6);
+      K(t, new THREE.Vector3(cE + r * Math.cos(ang), spiderC.y + alt, -cN + r * Math.sin(ang)), look(k), 48 - 3 * dive + 2 * climb);
+    }
+    const curve = hermiteKeys(keys);
+    const caps = vid.captions || [];
+    const cues = [{ t0: 0.6, t1: 9.5, type: 'title', title: vid.title || 'Hlohovec · lávka nad kruhovým objazdom', sub: vid.sub || 'jedna lávka namiesto zebier na kruhovom objazde' }];
+    if (vid.label !== false) cues.push({ t0: 10.5, t1: 17.5, type: 'label', key: 'spider' });
+    const span = (T - 8.5 - 18) / Math.max(1, caps.length);
+    caps.forEach((text, i) => cues.push({ t0: 18 + i * span, t1: 18 + (i + 1) * span - 0.6, type: 'caption', text }));
+    cues.push({ t0: T - 7.5, t1: T, type: 'endcard' });
+    videos.spider = {
+      duration: T, kind: 'aerial', curve, cues, minimap: false, timeOffset: 31,
+      brand: vid.brand || 'návrh lávky', endcard: vid.endcard || { title: 'Lávka nad kruhovým objazdom', items: [], note: 'Ilustračná vizualizácia – rozmery a umiestnenie sú orientačné.' },
+    };
+  }
+
   const tmpF = new THREE.Vector3();
   function apply(name, t) {
     const v = videos[name];
@@ -280,5 +341,5 @@ export function buildDirector(app) {
     return info;
   }
 
-  return { videos, apply, deckC };
+  return { videos, apply, deckC, spiderC };
 }

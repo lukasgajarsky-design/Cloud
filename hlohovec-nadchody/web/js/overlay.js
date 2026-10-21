@@ -23,7 +23,7 @@ const CSS = `
 #overlay .end .note { margin-top: 18px; font-size: 20px; opacity: .75; }
 `;
 
-const LABELS = { hlohova: 'Nadchod Hlohová', snp: 'Nadchod SNP' };
+const LABELS = { hlohova: 'Nadchod Hlohová', snp: 'Nadchod SNP', spider: 'Lávka nad kruhovým objazdom' };
 
 export class Overlay {
   constructor(root, app, director, opts = {}) {
@@ -36,6 +36,7 @@ export class Overlay {
       <div class="caption"></div>
       <div class="label" data-k="hlohova"><div class="pill"><i></i>${LABELS.hlohova}</div><div class="stem"></div></div>
       <div class="label" data-k="snp"><div class="pill"><i></i>${LABELS.snp}</div><div class="stem"></div></div>
+      <div class="label" data-k="spider"><div class="pill"><i></i>${(app.bigbridge && app.bigbridge.site.spec.name) || LABELS.spider}</div><div class="stem"></div></div>
       <canvas class="mini" width="300" height="276"></canvas>
       <div class="end"><h2>Návrh dvoch nadchodov</h2><ul>
         <li>ulica Hlohová a ulica SNP, hneď za kruhovým objazdom</li>
@@ -49,13 +50,17 @@ export class Overlay {
       title: root.querySelector('.title'), h1: root.querySelector('.title h1'), sub: root.querySelector('.title p'),
       caption: root.querySelector('.caption'), mini: root.querySelector('.mini'), end: root.querySelector('.end'),
       labels: Object.fromEntries([...root.querySelectorAll('.label')].map((e) => [e.dataset.k, e])),
+      brand: root.querySelector('.brand span'),
     };
+    this.endDefault = this.el.end.innerHTML;
+    this.shown = null;
     this.miniImg = null;
     this.miniMeta = null;
     this.anchors = {
       hlohova: director.deckC(app.overpasses.hlohova).setY(app.overpasses.hlohova.paths.yTop + 3.2),
       snp: director.deckC(app.overpasses.snp).setY(app.overpasses.snp.paths.yTop + 3.2),
     };
+    if (app.bigbridge) this.anchors.spider = director.spiderC.clone().setY(app.bigbridge.yTop + 9);
   }
 
   async load(base) {
@@ -68,7 +73,19 @@ export class Overlay {
     const v = this.dir.videos[name];
     const op = (c) => { const r = Math.min(0.7, (c.t1 - c.t0) / 3); return Math.min(Math.max(0, (t - c.t0) / r), Math.max(0, (c.t1 - t) / r), 1); };
     let title = null, caption = null, end = 0, fade = 0;
-    const labelOp = { hlohova: 0, snp: 0 };
+    const labelOp = { hlohova: 0, snp: 0, spider: 0 };
+    // per-video brand line and end card
+    if (this.shown !== name) {
+      this.shown = name;
+      this.el.brand.textContent = v.brand || 'návrh nadchodov';
+      if (v.endcard) {
+        const e = this.el.end;
+        e.innerHTML = '<h2></h2><ul></ul><div class="note"></div>';
+        e.querySelector('h2').textContent = v.endcard.title;
+        for (const it of v.endcard.items) { const li = document.createElement('li'); li.textContent = it; e.querySelector('ul').appendChild(li); }
+        e.querySelector('.note').textContent = v.endcard.note || '';
+      } else this.el.end.innerHTML = this.endDefault;
+    }
     for (const c of v.cues) {
       if (t < c.t0 || t > c.t1) continue;
       const o = op(c);
@@ -87,6 +104,7 @@ export class Overlay {
     // 3D anchored labels
     const cam = this.app.camera;
     for (const [k, el] of Object.entries(this.el.labels)) {
+      if (!this.anchors[k]) { el.style.opacity = 0; continue; }
       const p = this.anchors[k].clone().project(cam);
       const vis = p.z < 1 && Math.abs(p.x) < 1.1 && Math.abs(p.y) < 1.1;
       el.style.opacity = vis ? labelOp[k] : 0;
