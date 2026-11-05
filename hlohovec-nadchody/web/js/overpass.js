@@ -54,6 +54,14 @@ export function makeMaterials() {
     paving: new THREE.MeshStandardMaterial({ color: 0xa89c84, roughness: 0.95 }),
     led: new THREE.MeshStandardMaterial({ color: 0xfff1d6, emissive: 0xffe2b0, emissiveIntensity: 0.0, roughness: 0.4 }),
     glass: new THREE.MeshStandardMaterial({ color: 0xa9c4d4, transparent: true, opacity: 0.3, roughness: 0.06, metalness: 0.2, depthWrite: false }),
+    asphalt: new THREE.MeshStandardMaterial({ color: 0x4a4d50, roughness: 0.95 }),
+    redway: new THREE.MeshStandardMaterial({ color: 0xa8625a, roughness: 0.9 }),
+    bridgeConcrete: new THREE.MeshStandardMaterial({ color: 0xc9c5bc, roughness: 0.9 }),
+    grass: new THREE.MeshStandardMaterial({ color: 0x5b7640, roughness: 1.0 }),
+    leaf: new THREE.MeshStandardMaterial({ color: 0x4f7a34, roughness: 0.9, flatShading: true }),
+    bark: new THREE.MeshStandardMaterial({ color: 0x5b4532, roughness: 0.95 }),
+    pv: new THREE.MeshStandardMaterial({ color: 0x1d2c4a, roughness: 0.25, metalness: 0.5 }),
+    rain: new THREE.MeshStandardMaterial({ color: 0x55703c, roughness: 1.0 }),
   };
 }
 

@@ -26,7 +26,18 @@ export async function createApp(canvas) {
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
   const data = await loadData(DATA, { l0: params.get('l0') || window.HLOHOVEC_L0 || undefined, l1: window.HLOHOVEC_L1 || undefined });
-  const ground = makeGroundSampler(data.terrainMeta, data.terrain);
+  // optional long-footbridge / site spec (variant B); it may level the ground around its site
+  let bbSpec = null;
+  try {
+    bbSpec = await fetch(`${DATA}/${params.get('spec') || window.HLOHOVEC_SPEC || 'bigbridge.json'}`).then((r) => (r.ok ? r.json() : null));
+  } catch (e) { /* variant B is optional */ }
+  let ground = makeGroundSampler(data.terrainMeta, data.terrain);
+  if (bbSpec && bbSpec.flatten) {
+    // the coarse terrain model cannot resolve a riverside site: level it to the datum and blend out
+    const f = bbSpec.flatten, raw = ground, g0 = raw(f.at[0], -f.at[1]);
+    const smooth = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
+    ground = (x, z) => g0 + (raw(x, z) - g0) * smooth((Math.hypot(x - f.at[0], z + f.at[1]) - f.r0) / (f.r1 - f.r0));
+  }
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(50, W / H, 0.5, 30000);
@@ -92,15 +103,14 @@ export async function createApp(canvas) {
   }
   // optional long footbridge (variant B); hidden until setVariant('big')
   let bigbridge = null;
-  try {
-    const spec = await fetch(`${DATA}/bigbridge.json`).then((r) => (r.ok ? r.json() : null));
-    if (spec) { bigbridge = new BigBridge('bigbridge', spec, ground, mats); scene.add(bigbridge.group); }
-  } catch (e) { /* variant B is optional */ }
+  if (bbSpec) { bigbridge = new BigBridge('bigbridge', bbSpec, ground, mats); scene.add(bigbridge.group); }
   const blocked = (x, z) => Object.values(overpasses).some((o) => o.blocks(x, z, 1.2)) || (bigbridge && bigbridge.blocks(x, z, 1.2));
   const trees = new TreeField(data.trees, ground, blocked);
   scene.add(trees.group);
 
-  const traffic = new Traffic(data.routes, ground);
+  // vehicles ride on modelled road decks (bridge, embankment) where there are any
+  const roadAt = bigbridge ? (x, z) => Math.max(ground(x, z), bigbridge.roadSurface(x, z)) : ground;
+  const traffic = new Traffic(data.routes, roadAt);
   scene.add(traffic.group);
 
   const people = await new People().load(`${DATA}/Xbot.glb`);
@@ -142,7 +152,7 @@ export async function createApp(canvas) {
     people.setTag('small', v === 'small');
     people.setTag('big', v === 'big');
   };
-  app.setVariant(params.get('variant') || 'small');
+  app.setVariant(params.get('variant') || window.HLOHOVEC_VARIANT || 'small');
 
   app.setTime = (t, camPos) => {
     traffic.update(t);

@@ -6,7 +6,7 @@ const variant = process.env.VARIANT || 'big';
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') console.log('[console]', m.text().slice(0, 300)); });
-await page.goto(`http://127.0.0.1:8766/web/capture.html?mode=capture&w=1280&h=720&variant=${variant}&shadow=2048`, { waitUntil: 'load' });
+await page.goto(`http://127.0.0.1:8766/web/capture.html?mode=capture&w=1280&h=720&variant=${variant}&spec=${process.env.SPEC || ""}&shadow=2048`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.APP_READY, null, { timeout: 600000 });
 await page.addStyleTag({ content: 'body > :not(canvas) { display: none !important; }' });
 let i = 0;

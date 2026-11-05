@@ -38,7 +38,8 @@ export class BigBridge extends Overpass {
     d.upper = Math.ceil(d.risers / 2);
     // level deck: the reference ground is the highest road point under the deck
     let gMax = -Infinity;
-    for (const b of spec.branches) b.pts.forEach((p, i) => { if (!b.z || b.z[i] >= d.H - 0.01) gMax = Math.max(gMax, this.groundAt(p[0], -p[1])); });
+    if (spec.datum) gMax = this.groundAt(spec.datum[0], -spec.datum[1]);
+    else for (const b of spec.branches) b.pts.forEach((p, i) => { if (!b.z || b.z[i] >= d.H - 0.01) gMax = Math.max(gMax, this.groundAt(p[0], -p[1])); });
     this.y0 = gMax;
     const yTop = this.yTop = gMax + d.H;
     this.paths = { yTop, list: [] };
@@ -50,13 +51,14 @@ export class BigBridge extends Overpass {
       // walking-surface height per vertex: level parts at H, ramps from their z profile (the foot snaps to the local ground)
       const Yv = b.pts.map((p, i) => {
         if (!b.z) return yTop;
-        const z = b.z[i];
-        return z <= 0.001 ? this.groundAt(p[0], -p[1]) + 0.02 : gMax + z;
+        const z = b.z[i], g = this.groundAt(p[0], -p[1]);
+        if (b.solid) return Math.max(gMax + z, g + 0.05);
+        return z <= 0.001 ? g + 0.02 : gMax + z;
       });
       P.forEach((q, i) => q.setY(Yv[i]));
       const s = [0];
       for (let i = 1; i < P.length + (closed ? 1 : 0); i++) s.push(s[i - 1] + flat(P[i % P.length]).distanceTo(flat(P[i - 1])));
-      return { id: b.id, P, F, s, closed, sloped: !!b.z, z: b.z, w: b.w || d.deckW, openings: [[], []], capped: [!closed, !closed], trim: [0, 0] };
+      return { id: b.id, P, F, s, closed, sloped: !!b.z, z: b.z, style: b.style, solid: !!b.solid, w: b.w || d.deckW, openings: [[], []], capped: [!closed, !closed], trim: [0, 0] };
     });
     this.joints();
     for (const p of spec.platforms || []) this.platform(p);
@@ -64,6 +66,7 @@ export class BigBridge extends Overpass {
     for (const b of this.branches) this.deck(b);
     for (const p of spec.piers || []) this.pier(p);
     if (spec.mast) this.mast(spec.mast);
+    if (spec.zone) this.furnish(spec.zone);
     this.finish();
   }
 
@@ -90,6 +93,18 @@ export class BigBridge extends Overpass {
     return p.addScaledVector(L, l).setY(p.y + dy);
   }
 
+  // top of a modelled road deck at (x, z), or -Infinity off the carriageway
+  roadSurface(x, z) {
+    const Q = new THREE.Vector3(x, 0, z);
+    let y = -Infinity;
+    for (const b of this.branches) {
+      if (b.style !== 'road') continue;
+      const l = this.locateOn(b, Q);
+      if (l.dist < b.w / 2 - 2.5 && l.s > 0.01 && l.s < b.s[b.s.length - 1] - 0.01) y = Math.max(y, this.at(b, l.s).y + 0.02);
+    }
+    return y;
+  }
+
   // where an open branch end meets another branch or a platform: open that railing, drop the end cap
   // and keep this branch's own railings off the other deck
   joints() {
@@ -108,6 +123,11 @@ export class BigBridge extends Overpass {
           b.capped[end] = false;
           (b.joint ||= [null, null])[end] = { o: hit.o, s: hit.s };
           const dir = flat(b.P[end ? b.P.length - 2 : 1]).sub(flat(Q)).normalize();
+          if (Math.abs(dir.dot(hit.L)) < 0.5) {
+            const oEnd = hit.s < 1 ? 0 : hit.s > hit.o.s[hit.o.s.length - 1] - 1 ? 1 : -1;
+            if (oEnd >= 0) hit.o.capped[oEnd] = false;
+            continue;
+          }
           const sin = Math.max(0.35, Math.abs(dir.dot(hit.L)));
           b.trim[end] = Math.max(0, (hit.o.w / 2 - hit.dist * Math.sign(flat(Q).sub(hit.C).dot(dir) || 1)) / sin);
           const half = b.w / 2 / sin + 0.1;
@@ -187,6 +207,7 @@ export class BigBridge extends Overpass {
   }
 
   deck(b) {
+    if (b.style === 'road') return this.roadDeck(b);
     const { fascia } = this.d, w = b.w;
     const { P, F, closed } = b;
     const n = P.length, m = closed ? n : n - 1;
@@ -243,8 +264,141 @@ export class BigBridge extends Overpass {
       if (b.capped[0]) this.railing(this.at(b, 0, -rl), this.at(b, 0, rl), { spacing: 1.5 });
       if (b.capped[1]) this.railing(this.at(b, total, -rl), this.at(b, total, rl), { spacing: 1.5 });
     }
-    if (b.sloped) this.rampSupports(b);
+    if (b.sloped && b.style !== 'road') this.rampSupports(b);
     this.footprintAlong(b);
+  }
+
+  // existing road bridge / approach: asphalt carriageway between red sidewalks on a concrete box,
+  // or (solid) an earth embankment with grassed slopes down to the ground
+  roadDeck(b) {
+    const w = b.w, hw = w / 2, side = 3.0;
+    const strip = (key, l0, l1, dy = 0.01) => this.sweep(key, b, [[l0, dy - 0.02], [l1, dy - 0.02], [l1, dy], [l0, dy]]);
+    strip('redway', -hw, -hw + side, 0.15); strip('redway', hw - side, hw, 0.15);
+    strip('asphalt', -hw + side, hw - side, 0.0);
+    if (b.solid) {
+      const { P, F } = b, n = P.length, pos = [];
+      const q = (i, l, y) => P[i].clone().addScaledVector(F[i].L, l * F[i].k).setY(y);
+      for (let i = 0; i < n - 1; i++) {
+        for (const sd of [-1, 1]) {
+          const g0 = this.groundAt(P[i].x, P[i].z), g1 = this.groundAt(P[i + 1].x, P[i + 1].z);
+          const h0 = Math.max(0, P[i].y - g0), h1 = Math.max(0, P[i + 1].y - g1);
+          const a = q(i, sd * hw, P[i].y), c = q(i + 1, sd * hw, P[i + 1].y);
+          const a2 = q(i, sd * (hw + 1.6 * h0), g0 - 0.2), c2 = q(i + 1, sd * (hw + 1.6 * h1), g1 - 0.2);
+          const up = new THREE.Vector3().subVectors(c, a).cross(new THREE.Vector3().subVectors(a2, a)).dot(F[i].L) * sd > 0;
+          if (up) pos.push(...a.toArray(), ...c.toArray(), ...a2.toArray(), ...c.toArray(), ...c2.toArray(), ...a2.toArray());
+          else pos.push(...a.toArray(), ...a2.toArray(), ...c.toArray(), ...c.toArray(), ...a2.toArray(), ...c2.toArray());
+        }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.computeVertexNormals();
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array((pos.length / 3) * 2), 2));
+      this.add('grass', g);
+      // kerbs instead of railings on the embankment
+      strip('bridgeConcrete', -hw, -hw + 0.3, 0.3); strip('bridgeConcrete', hw - 0.3, hw, 0.3);
+    } else {
+      this.sweep('bridgeConcrete', b, [[-hw + 1.0, -this.d.fascia], [hw - 1.0, -this.d.fascia], [hw, -0.05], [-hw, -0.05]]);
+      for (const sd of [-1, 1]) this.sweep('bridgeConcrete', b, [[sd * hw - (sd > 0 ? 0.35 : 0), -0.4], [sd * hw + (sd > 0 ? 0 : 0.35), -0.4], [sd * hw + (sd > 0 ? 0 : 0.35), 0.25], [sd * hw - (sd > 0 ? 0.35 : 0), 0.25]]);
+      const total = b.s[b.s.length - 1], rl = hw - 0.2;
+      for (const [k, sd] of [[0, 1], [1, -1]]) {
+        const open = b.openings[k].slice().sort((x, y) => x[0] - y[0]);
+        let s0 = 0;
+        const runs = [];
+        for (const [a, c] of open) { if (a > s0 + 0.3) runs.push([s0, a]); s0 = Math.max(s0, c); }
+        if (total > s0 + 0.3) runs.push([s0, total]);
+        for (const [a, c] of runs) {
+          const steps = Math.max(1, Math.ceil((c - a) / 6));
+          for (let i = 0; i < steps; i++) this.railing(this.at(b, a + ((c - a) * i) / steps, sd * rl, 0.25), this.at(b, a + ((c - a) * (i + 1)) / steps, sd * rl, 0.25), { spacing: 2.0, h: 1.1, skipFirst: i > 0 });
+        }
+      }
+    }
+    this.footprintAlong(b);
+    if (b.solid) for (let i = 0; i < b.P.length - 1; i++) {
+      const A = flat(b.P[i]), B = flat(b.P[i + 1]);
+      const h = Math.max(0, b.P[i].y - this.groundAt(A.x, A.z));
+      this.footprint.push([A.clone().add(B).multiplyScalar(0.5), B.clone().sub(A).normalize(), A.distanceTo(B) / 2 + 0.3, b.w / 2 + 1.6 * h + 1.0]);
+    }
+  }
+
+  // the green zone: paving, rain gardens, solar pergola, picnic tables, benches, lamps, bike racks, trees
+  furnish(z) {
+    const G = (e, n) => this.groundAt(e, -n);
+    const Dir = (deg) => new THREE.Vector3(Math.cos(THREE.MathUtils.degToRad(deg)), 0, -Math.sin(THREE.MathUtils.degToRad(deg)));
+    const at = ([e, n], dy = 0) => new THREE.Vector3(e, G(e, n) + dy, -n);
+    const local = (c, deg, u, v, y) => { const D = Dir(deg), L = new THREE.Vector3(-D.z, 0, D.x); return c.clone().addScaledVector(D, u).addScaledVector(L, v).setY(c.y + y); };
+    for (const poly of z.paving || []) {
+      const shape = new THREE.Shape(poly.map(([e, n]) => new THREE.Vector2(e, n)));
+      const g = new THREE.ShapeGeometry(shape); g.rotateX(-Math.PI / 2);
+      const c = poly.reduce((a, p) => [a[0] + p[0] / poly.length, a[1] + p[1] / poly.length], [0, 0]);
+      g.translate(0, G(c[0], c[1]) + 0.06, 0);
+      this.add('paving', g);
+      const pg = poly.map(([e, n]) => [e, n]);
+      const bb = pg.reduce((a, p) => [Math.min(a[0], p[0]), Math.min(a[1], p[1]), Math.max(a[2], p[0]), Math.max(a[3], p[1])], [1e9, 1e9, -1e9, -1e9]);
+      this.footprint.push([new THREE.Vector3((bb[0] + bb[2]) / 2, 0, -(bb[1] + bb[3]) / 2), new THREE.Vector3(1, 0, 0), (bb[2] - bb[0]) / 2, (bb[3] - bb[1]) / 2]);
+    }
+    for (const r of z.raingardens || []) {
+      const shape = new THREE.Shape(); shape.absellipse(0, 0, r.r[0], r.r[1], 0, Math.PI * 2, false, 0);
+      const g = new THREE.ShapeGeometry(shape, 32); g.rotateX(-Math.PI / 2); g.rotateY(THREE.MathUtils.degToRad(r.rot || 0));
+      const c = at(r.at, 0.05); g.translate(c.x, c.y, c.z); this.add('rain', g);
+      for (let i = 0; i < 18; i++) {
+        const a = (i / 18) * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+        const p = local(c, r.rot || 0, r.r[0] * ca, r.r[1] * sa, 0.1);
+        const st = new THREE.DodecahedronGeometry(0.28 + (i % 3) * 0.06); st.translate(p.x, p.y, p.z); this.add('concrete', st);
+      }
+      for (let i = 0; i < 7; i++) { // reeds / perennials
+        const p = local(c, r.rot || 0, (Math.sin(i * 2.1) * r.r[0]) / 2, (Math.cos(i * 1.7) * r.r[1]) / 2, 0.35);
+        const b = new THREE.IcosahedronGeometry(0.45, 0); b.scale(1, 0.8, 1); b.translate(p.x, p.y, p.z); this.add('leaf', b);
+      }
+    }
+    for (const p of z.pergola || []) {
+      const c = at(p.at), D = Dir(p.rot || 0);
+      for (const u of [-p.len / 2 + 0.3, 0, p.len / 2 - 0.3]) for (const v of [-p.dep / 2 + 0.3, p.dep / 2 - 0.3]) {
+        const q = local(c, p.rot || 0, u, v, 0);
+        this.box('steel', q.clone().setY(c.y + 1.4), D, 0.15, 0.15, 2.8 + (v > 0 ? 0.6 : 0));
+      }
+      // panels tilted towards the south side of the frame
+      const roof = new THREE.BoxGeometry(p.len, 0.06, p.dep + 0.4);
+      roof.rotateX(THREE.MathUtils.degToRad(-7));
+      roof.applyMatrix4(new THREE.Matrix4().makeBasis(D, Y, new THREE.Vector3().crossVectors(D, Y)).setPosition(c.clone().setY(c.y + 3.1)));
+      this.add(p.pv ? 'pv' : 'brownTop', roof);
+      this.footprint.push([flat(c), D, p.len / 2 + 1, p.dep / 2 + 1]);
+    }
+    const bench = (c, deg) => {
+      const D = Dir(deg);
+      this.box('brownTop', local(c, deg, 0, 0, 0.45), D, 1.8, 0.45, 0.06);
+      this.box('brownTop', local(c, deg, 0, -0.22, 0.75), D, 1.8, 0.06, 0.35);
+      for (const u of [-0.75, 0.75]) this.box('steel', local(c, deg, u, 0, 0.22), D, 0.06, 0.42, 0.45);
+    };
+    for (const b of z.benches || []) bench(at(b.at), b.rot || 0);
+    for (const t of z.tables || []) {
+      const c = at(t);
+      this.box('brownTop', c.clone().setY(c.y + 0.75), Dir(0), 2.0, 0.8, 0.06);
+      for (const u of [-0.8, 0.8]) this.box('steel', local(c, 0, u, 0, 0.37), Dir(0), 0.08, 0.6, 0.74);
+      for (const v of [-0.75, 0.75]) this.box('brownTop', local(c, 0, 0, v, 0.45), Dir(0), 2.0, 0.3, 0.05);
+    }
+    for (const l of z.lamps || []) {
+      const c = at(l);
+      this.box('steel', c.clone().setY(c.y + 2.0), Dir(0), 0.1, 0.1, 4.0);
+      this.box('led', c.clone().setY(c.y + 4.05), Dir(0), 0.5, 0.5, 0.12);
+    }
+    for (const r of z.bikes || []) {
+      const c = at(r.at);
+      for (let i = 0; i < r.n; i++) {
+        const a = local(c, r.rot || 0, (i - (r.n - 1) / 2) * 0.9, 0, 0);
+        const D2 = Dir((r.rot || 0) + 90);
+        this.tube('metal', a.clone().addScaledVector(D2, -0.4), a.clone().addScaledVector(D2, -0.4).setY(a.y + 0.8), 0.03);
+        this.tube('metal', a.clone().addScaledVector(D2, 0.4), a.clone().addScaledVector(D2, 0.4).setY(a.y + 0.8), 0.03);
+        this.tube('metal', a.clone().addScaledVector(D2, -0.4).setY(a.y + 0.8), a.clone().addScaledVector(D2, 0.4).setY(a.y + 0.8), 0.03);
+      }
+    }
+    (z.trees || []).forEach((t, i) => {
+      const c = at(t), h = 3.0 + (i % 3) * 0.5, r = 2.0 + (i % 4) * 0.35;
+      const trunk = new THREE.CylinderGeometry(0.16, 0.22, h, 8); trunk.translate(c.x, c.y + h / 2, c.z); this.add('bark', trunk);
+      for (const [dx, dy, dz, k] of [[0, 0, 0, 1], [0.6, -0.5, 0.4, 0.75], [-0.5, -0.4, -0.5, 0.7]]) {
+        const crown = new THREE.IcosahedronGeometry(r * k, 1); crown.scale(1, 0.85, 1);
+        crown.translate(c.x + dx * r, c.y + h + r * 0.55 + dy * r, c.z + dz * r); this.add('leaf', crown);
+      }
+    });
   }
 
   // ramps stand on single steel columns every <=9 m; near the ground they sit on a solid plinth
@@ -430,6 +584,16 @@ export class BigBridge extends Overpass {
   ramp() { return null; }
 
   pier(p) {
+    if (p.style === 'wall') {
+      const c = V(p.at), base = this.groundAt(c.x, c.z);
+      let best = null;
+      for (const b of this.branches) { const l = this.locateOn(b, c); if (!best || l.dist < best.dist) best = { ...l, b }; }
+      const top = this.at(best.b, best.s).y - this.d.fascia;
+      const D = new THREE.Vector3(p.dir[0], 0, -p.dir[1]).normalize();
+      this.box('bridgeConcrete', new THREE.Vector3(c.x, (base - 1 + top) / 2, c.z), D, p.len, 1.4, top - base + 1);
+      this.box('bridgeConcrete', new THREE.Vector3(c.x, top - 0.3, c.z), D, p.len + 0.8, 1.9, 0.6);
+      return;
+    }
     const c = V(p.at);
     const base = this.groundAt(c.x, c.z), topY = this.yTop - this.d.fascia + 0.1;
     const r = p.r || 0.32;

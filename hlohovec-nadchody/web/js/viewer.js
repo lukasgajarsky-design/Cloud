@@ -23,11 +23,16 @@ createApp(canvas).then((app) => {
 
   const H = app.overpasses.hlohova, S = app.overpasses.snp;
   const deck = (o) => dir.deckC(o).setY(o.paths.yTop - 2);
-  const views = {
-    overview: { pos: new THREE.Vector3(-150, 150, 175), target: new THREE.Vector3(35, 0, 0) },
-    hlohova: { pos: H.W(-38, -36).setY(H.paths.yTop + 16), target: deck(H) },
-    snp: { pos: S.W(-34, -30).setY(S.paths.yTop + 15), target: deck(S) },
-  };
+  const spec = app.bigbridge && app.bigbridge.site.spec;
+  // a site page lists its own camera views as [E, height above ground, N]
+  const P = ([e, h, n]) => new THREE.Vector3(e, app.ground(e, -n) + h, -n);
+  const views = spec && spec.views && app.variant === 'big'
+    ? Object.fromEntries(spec.views.map((v) => [v.key, { pos: P(v.pos), target: P(v.target) }]))
+    : {
+      overview: { pos: new THREE.Vector3(-150, 150, 175), target: new THREE.Vector3(35, 0, 0) },
+      hlohova: { pos: H.W(-38, -36).setY(H.paths.yTop + 16), target: deck(H) },
+      snp: { pos: S.W(-34, -30).setY(S.paths.yTop + 15), target: deck(S) },
+    };
   let fly = null;            // camera transition
   let tour = null;           // { name, t0 }
   const flyTo = (key) => {
@@ -61,7 +66,7 @@ createApp(canvas).then((app) => {
   $('#stop').addEventListener('click', () => { stopTour(); flyTo('overview'); });
 
   // floating labels above both decks
-  const labels = [[H, $('#lab-h')], [S, $('#lab-s')]].map(([o, el]) => [dir.deckC(o).setY(o.paths.yTop + 3.5), el]);
+  const labels = [[H, $('#lab-h')], [S, $('#lab-s')]].filter(([, el]) => el).map(([o, el]) => [dir.deckC(o).setY(o.paths.yTop + 3.5), el]);
 
   camera.position.copy(views.overview.pos);
   controls.target.copy(views.overview.target);

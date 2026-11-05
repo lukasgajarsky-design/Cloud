@@ -9,3 +9,4 @@ export/v2/
 export/ground_*
 export/dl/stage/
 export/dl/*.b64.txt
+web/zona_local.html
