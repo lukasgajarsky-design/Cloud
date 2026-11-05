@@ -39,6 +39,9 @@ for p in z['pergola']:
     a = math.radians(p['rot']); D = (math.cos(a), math.sin(a)); L = (-D[1], D[0])
     q = [(p['at'][0] + su * p['len'] / 2 * D[0] + sv * p['dep'] / 2 * L[0], p['at'][1] + su * p['len'] / 2 * D[1] + sv * p['dep'] / 2 * L[1]) for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
     d.polygon([P(*v) for v in q], fill=(30, 45, 80, 230))
+for st in spec.get('stairs', []):
+    d.line([P(*q) for q in st['pts']], fill=(225, 225, 220, 255), width=int(st['w'] * sc * ppm * 0.9), joint='curve')
+    d.line([P(*q) for q in st['pts']], fill=(31, 86, 176, 255), width=3)
 for t in z['trees']:
     x, y = P(*t); r = 3.0 * sc * ppm
     d.ellipse((x - r, y - r, x + r, y + r), fill=(60, 120, 50, 210), outline=(30, 80, 30, 255), width=2)
@@ -51,12 +54,12 @@ def tag(x, y, text, col, anchor='la', size=26):
     d.text((x, y), text, font=f, fill=(28, 33, 29, 255), anchor=anchor)
 brown, green, blue, grey = (138, 86, 49, 255), (46, 120, 60, 255), (40, 80, 120, 255), (90, 90, 90, 255)
 tag(*P(-282, 205), 'Most cez Váh (II/513)', grey)
-tag(*P(-150, 186), 'Rampa SV namiesto schodov', brown)
+tag(*P(-172, 192), 'Schody so žliabkami na bicykel (existujúce)', blue)
 tag(*P(-150, 178), 'k hrádzi a do Parku R. Dilongu', green, size=22)
-tag(*P(-188, 96), 'Rampa JZ', brown)
+tag(*P(-186, 116), 'Zjazd pre bicykle a kolobežky', brown)
 tag(*P(-282, 136), 'Park: stromy, pergola s fotovoltikou, stoly', green)
 tag(*P(-200, 160), 'Krytá zóna pod mostom', brown, size=22)
-tag(*P(-158, 108), 'Násyp mosta', grey, size=22)
+tag(*P(-140, 104), 'Násyp mosta', grey, size=22)
 tag(*P(-238, 126), 'Dažďová záhrada', blue, size=20)
 W, H = base.size; f = F(22, 'Medium')
 L50 = P(-235, 0)[0] - P(-285, 0)[0]

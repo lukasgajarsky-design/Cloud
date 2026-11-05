@@ -62,6 +62,7 @@ export function makeMaterials() {
     bark: new THREE.MeshStandardMaterial({ color: 0x5b4532, roughness: 0.95 }),
     pv: new THREE.MeshStandardMaterial({ color: 0x1d2c4a, roughness: 0.25, metalness: 0.5 }),
     rain: new THREE.MeshStandardMaterial({ color: 0x55703c, roughness: 1.0 }),
+    blueSteel: new THREE.MeshStandardMaterial({ color: 0x1f56b0, roughness: 0.4, metalness: 0.45 }),
   };
 }
 
@@ -112,17 +113,17 @@ export class Overpass {
 
   // railing between two walking-surface points (world, y = walking level)
   railing(a, b, opts = {}) {
-    const h = opts.h ?? DESIGN.railH;
+    const h = opts.h ?? DESIGN.railH, mat = opts.mat || 'metal';
     const len = a.distanceTo(b);
     const n = Math.max(1, Math.ceil(len / (opts.spacing ?? 1.6)));
     for (let i = 0; i <= n; i++) {
       if ((i === 0 && opts.skipFirst) || (i === n && opts.skipLast)) continue;
       const p = a.clone().lerp(b, i / n);
-      this.tube('metal', p, p.clone().setY(p.y + h), 0.032);
+      this.tube(mat, p, p.clone().setY(p.y + h), 0.032);
     }
     const up = (k) => [a.clone().setY(a.y + k), b.clone().setY(b.y + k)];
-    this.tube('metal', ...up(h), 0.04);                     // hand rail
-    for (const k of [0.22, 0.44, 0.66, 0.88]) this.tube('metal', ...up(k * h), 0.018); // horizontal bars
+    this.tube(mat, ...up(h), 0.04);                     // hand rail
+    for (const k of [0.22, 0.44, 0.66, 0.88]) this.tube(mat, ...up(k * h), 0.018); // horizontal bars
   }
 
   column(c, top) {

@@ -110,7 +110,7 @@ export async function createApp(canvas) {
 
   // vehicles ride on modelled road decks (bridge, embankment) where there are any
   const roadAt = bigbridge ? (x, z) => Math.max(ground(x, z), bigbridge.roadSurface(x, z)) : ground;
-  const traffic = new Traffic(data.routes, roadAt);
+  const traffic = new Traffic(data.routes, roadAt, (bbSpec && bbSpec.traffic) || {});
   scene.add(traffic.group);
 
   const people = await new People().load(`${DATA}/Xbot.glb`);

@@ -69,18 +69,28 @@ def switchback(side, legs, leg_len, first_off, s0):
 
 branches = [bridge, embank]
 platforms, report = [], {}
-for name, side in (('SV', 1), ('JZ', -1)):
-    # level link from the sidewalk at the bridge end out over the embankment slope
-    s_link = -4.0
-    a = C(s_link, side * (BW / 2 - 0.4)); b = C(s_link, side * 15.5)
-    branches.append({'id': f'spoj_{name}', 'w': RW + 0.4, 'pts': [r2(a), r2(b)]})
-    pts, z = switchback(side, 4, 21.0, 15.5, s_link)
-    branches.append({'id': f'rampa_{name}', 'w': RW, 'pts': pts, 'z': z})
-    foot = LineString(pts).buffer(RW / 2 + 0.5)
-    L = sum(math.dist(pts[i], pts[i + 1]) for i in range(len(pts) - 1))
-    gr = max((z[i] - z[i + 1]) / max(1e-6, math.dist(pts[i], pts[i + 1])) for i in range(len(z) - 1))
-    report[f'rampa_{name}'] = dict(length_m=round(L, 1), end_height=z[-1], max_grade_pct=round(100 * gr, 1),
-                                   buildings_m2=round(foot.intersection(BLD).area, 1), end=pts[-1])
+
+# north-east side towards R. Dilonga: the existing zig-zag concrete stair complex (OSM ways 30722363 and
+# 30722362, 34 + 20 steps, top at the bridge sidewalk) is kept and gets wheel channels for bikes and scooters
+stairs = [
+    {'id': 'schody_SV', 'steps': 34, 'w': 2.2, 'channels': True,
+     'pts': [[-172.3, 139.1], [-171.6, 139.9], [-163.9, 149.0], [-169.2, 153.3], [-167.1, 155.8], [-161.9, 151.9], [-157.6, 157.6]]},
+    {'id': 'schody_SV2', 'steps': 20, 'w': 2.0, 'channels': True, 'top': [-163.9, 149.0],
+     'pts': [[-163.9, 149.0], [-158.9, 145.4], [-156.5, 147.8], [-161.9, 151.9]]},
+]
+
+# south-west side (inbound, towards Nábrežie A. Hlinku and the garden): a natural descent for bikes and
+# scooters running down the embankment slope from the cycle path, then under the bridge edge to the riverside road
+emb_h = lambda s: max(0.0, H * (1 - s / 95))
+desc_sl = [(52, -6.9), (45, -7.4), (38, -8.2), (31, -9.4), (24, -10.8), (17, -12.0), (10, -13.0), (5, -13.6), (0, -14.2), (-6, -14.8),
+           (-12, -15.3), (-18, -15.8), (-24, -16.4), (-30, -17.0), (-35, -17.5)]
+desc_pts = [r2(C(s, l)) for s, l in desc_sl]
+desc_z = [round(emb_h(52) * max(0.0, (s - 5) / 47), 2) for s, l in desc_sl]
+branches.append({'id': 'zjazd_JZ', 'style': 'bikepath', 'solid': True, 'w': 3.0, 'pts': desc_pts, 'z': desc_z})
+dl = sum(math.dist(desc_pts[i], desc_pts[i + 1]) for i in range(len(desc_pts) - 1))
+report['zjazd_JZ'] = dict(length_m=round(dl, 1), drop_m=round(desc_z[0], 2),
+                          grade_pct=round(100 * desc_z[0] / sum(math.dist(desc_pts[i], desc_pts[i + 1]) for i in range(5)), 1),
+                          buildings_m2=round(LineString(desc_pts).buffer(2.0).intersection(BLD).area, 1))
 
 # covered seating under the deck, between the abutment and the street under the bridge
 under = [C(-12, -4), C(-12, 4), C(-27, 4), C(-27, -4)]
@@ -107,19 +117,22 @@ report['pergola_in_buildings'] = Point(-246, 96).buffer(8).intersects(BLD)
 spec = {
     'name': 'Zelená zóna pri moste', 'H': H, 'datum': list(END), 'flatten': {'at': [-195, 130], 'r0': 85, 'r1': 140},
     'design': {'clearance': 3.8, 'fascia': 1.2, 'deckW': BW},
-    'branches': branches, 'platforms': platforms, 'access': [], 'piers': piers, 'mast': None, 'zone': zone_items,
+    'branches': branches, 'platforms': platforms, 'access': [], 'piers': piers, 'mast': None, 'zone': zone_items, 'stairs': stairs,
+    # peak hour on the bridge: ~1 600 vehicles/h both ways (SSC census 2022: 17 800 vehicles/day on this section)
+    'traffic': {'plan': {'HN-SE': 7, 'SE-HN': 7, 'W-SE': 16, 'SE-W': 16, 'HN-W': 13, 'W-HN': 13, 'S-HN': 2, 'SE-S': 2, 'HN-S': 2, 'S-SE': 2, 'S-W': 3, 'W-S': 3}},
     'views': [
         {'key': 'overview', 'label': 'Prehľad', 'pos': [-300, 90, -10], 'target': [-195, 0, 115]},
-        {'key': 'sv', 'label': 'Rampa SV', 'pos': [-120, 22, 205], 'target': [-160, 2, 145]},
-        {'key': 'jz', 'label': 'Rampa JZ', 'pos': [-250, 20, 55], 'target': [-192, 2, 110]},
+        {'key': 'sv', 'label': 'Schody SV', 'pos': [-140, 14, 190], 'target': [-165, 2, 150]},
+        {'key': 'jz', 'label': 'Zjazd JZ', 'pos': [-150, 12, 80], 'target': [-195, 1, 118]},
         {'key': 'pod', 'label': 'Pod mostom', 'pos': [-230, 3, 150], 'target': [-190, 1.6, 140]},
         {'key': 'park', 'label': 'Park', 'pos': [-270, 12, 120], 'target': [-228, 1, 88]},
     ],
-    'video': {'center': [-195, 125], 'radius': 55, 'title': 'Zelená zóna pri moste cez Váh', 'sub': 'Hlohovec · rampy namiesto schodov a oddychová zóna',
-              'captions': ['Rampy namiesto schodov na oboch stranách mosta – pre kočíky, vozíky aj bicykle',
+    'video': {'center': [-195, 125], 'radius': 55, 'title': 'Zelená zóna pri moste cez Váh', 'sub': 'Hlohovec · zjazd pre bicykle, schody so žliabkami a oddychová zóna',
+              'captions': ['Schodisko k Dilongovej so žliabkami na bicykel a kolobežku',
+                           'Prirodzený zjazd z mosta pre bicykle a kolobežky smerom na nábrežie',
                            'Krytá zóna pod mostom so stolmi a lavicami', 'Park so stromami, solárnou pergolou a dažďovými záhradami',
                            'Z mosta rovno na hrádzu a do Parku R. Dilongu'],
-              'endcard': {'title': 'Zelená zóna pri moste cez Váh', 'items': ['2 rampy so sklonom 8 % a odpočívadlami', 'krytá zóna pod mostom', 'stromy, lavice, stoly, pergola s fotovoltikou', 'dažďové záhrady pre vodu z mosta'], 'note': 'Ilustračná vizualizácia · vytvoril Lukáš Gajarský'}},
+              'endcard': {'title': 'Zelená zóna pri moste cez Váh', 'items': ['žliabky na schodisku k Dilongovej', 'zjazd z mosta po svahu násypu pre bicykle a kolobežky', 'krytá zóna pod mostom', 'stromy, lavice, stoly, pergola s fotovoltikou', 'dažďové záhrady pre vodu z mosta'], 'note': 'Ilustračná vizualizácia · vytvoril Lukáš Gajarský'}},
 }
 json.dump(spec, open(out, 'w'), ensure_ascii=False)
 print(json.dumps(report, indent=1, ensure_ascii=False))

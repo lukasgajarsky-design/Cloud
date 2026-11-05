@@ -61,24 +61,24 @@ body.touring .walk { display: flex; }
 }
 </style>
 
-<canvas id="scene" aria-label="3D model zelenej zóny pri moste cez Váh v Hlohovci s rampami a oddychovou zónou"></canvas>
+<canvas id="scene" aria-label="3D model zelenej zóny pri moste cez Váh v Hlohovci so zjazdom pre bicykle, schodiskom a oddychovou zónou"></canvas>
 
 <div class="ui">
   <div class="top">
     <header class="panel plate">
       <h1>Zelená zóna pri moste</h1>
-      <p>Rampy namiesto schodov na oboch stranách mosta cez Váh, krytá zóna pod mostom a park so stromami, lavicami, stolmi a solárnou pergolou.</p>
+      <p>Pri moste cez Váh: schodisko k Dilongovej so žliabkami na bicykel a kolobežku, prirodzený zjazd z mosta pre bicykle a kolobežky smerom na nábrežie, krytá zóna pod mostom a park so stromami, lavicami a solárnou pergolou.</p>
       <p class="credit"><span>Vytvoril: Lukáš Gajarský</span><a href="https://claude.ai/artifact/FPKrhuC4oFuMy9QDNAh5PW" target="_blank" rel="noopener">Projektový zámer</a></p>
     </header>
     <details class="panel spec" id="spec" open>
       <summary>Parametre návrhu</summary>
       <dl>
-        <dt>Rampy</dt><dd>2 × 96 m</dd>
-        <dt>Sklon rámp</dt><dd>8 % / 9 m</dd>
-        <dt>Odpočívadlá</dt><dd>2,0 m</dd>
+        <dt>Schody k Dilongovej</dt><dd>34 + 20</dd>
+        <dt>Žliabky na bicykel</dt><dd>áno</dd>
+        <dt>Zjazd pre bicykle</dt><dd>88 m · ~5 %</dd>
         <dt>Výška mosta</dt><dd>~5,0 m</dd>
-        <dt>Stromy</dt><dd>14</dd>
-        <dt>Pergola FV</dt><dd>14 × 5 m</dd>
+        <dt>Stromy</dt><dd>13</dd>
+        <dt>Doprava v špičke</dt><dd>~27 áut/min</dd>
       </dl>
     </details>
   </div>
@@ -87,8 +87,8 @@ body.touring .walk { display: flex; }
     <nav class="panel dock" aria-label="Ovládanie kamery">
       <div class="group"><span>Pohľad</span>
         <button data-go="overview" aria-pressed="true">Prehľad</button>
-        <button data-go="sv" aria-pressed="false">Rampa SV</button>
-        <button data-go="jz" aria-pressed="false">Rampa JZ</button>
+        <button data-go="sv" aria-pressed="false">Schody SV</button>
+        <button data-go="jz" aria-pressed="false">Zjazd JZ</button>
         <button data-go="pod" aria-pressed="false">Pod mostom</button>
         <button data-go="park" aria-pressed="false">Park</button>
       </div>

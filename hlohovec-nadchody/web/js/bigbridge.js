@@ -67,6 +67,7 @@ export class BigBridge extends Overpass {
     for (const p of spec.piers || []) this.pier(p);
     if (spec.mast) this.mast(spec.mast);
     if (spec.zone) this.furnish(spec.zone);
+    for (const st of spec.stairs || []) this.stairway(st);
     this.finish();
   }
 
@@ -207,7 +208,7 @@ export class BigBridge extends Overpass {
   }
 
   deck(b) {
-    if (b.style === 'road') return this.roadDeck(b);
+    if (b.style === 'road' || b.style === 'bikepath') return this.roadDeck(b);
     const { fascia } = this.d, w = b.w;
     const { P, F, closed } = b;
     const n = P.length, m = closed ? n : n - 1;
@@ -264,7 +265,7 @@ export class BigBridge extends Overpass {
       if (b.capped[0]) this.railing(this.at(b, 0, -rl), this.at(b, 0, rl), { spacing: 1.5 });
       if (b.capped[1]) this.railing(this.at(b, total, -rl), this.at(b, total, rl), { spacing: 1.5 });
     }
-    if (b.sloped && b.style !== 'road') this.rampSupports(b);
+    if (b.sloped && !b.style) this.rampSupports(b);
     this.footprintAlong(b);
   }
 
@@ -273,8 +274,11 @@ export class BigBridge extends Overpass {
   roadDeck(b) {
     const w = b.w, hw = w / 2, side = 3.0;
     const strip = (key, l0, l1, dy = 0.01) => this.sweep(key, b, [[l0, dy - 0.02], [l1, dy - 0.02], [l1, dy], [l0, dy]]);
-    strip('redway', -hw, -hw + side, 0.15); strip('redway', hw - side, hw, 0.15);
-    strip('asphalt', -hw + side, hw - side, 0.0);
+    if (b.style === 'bikepath') strip('redway', -hw, hw, 0.02);
+    else {
+      strip('redway', -hw, -hw + side, 0.15); strip('redway', hw - side, hw, 0.15);
+      strip('asphalt', -hw + side, hw - side, 0.0);
+    }
     if (b.solid) {
       const { P, F } = b, n = P.length, pos = [];
       const q = (i, l, y) => P[i].clone().addScaledVector(F[i].L, l * F[i].k).setY(y);
@@ -308,7 +312,7 @@ export class BigBridge extends Overpass {
         if (total > s0 + 0.3) runs.push([s0, total]);
         for (const [a, c] of runs) {
           const steps = Math.max(1, Math.ceil((c - a) / 6));
-          for (let i = 0; i < steps; i++) this.railing(this.at(b, a + ((c - a) * i) / steps, sd * rl, 0.25), this.at(b, a + ((c - a) * (i + 1)) / steps, sd * rl, 0.25), { spacing: 2.0, h: 1.1, skipFirst: i > 0 });
+          for (let i = 0; i < steps; i++) this.railing(this.at(b, a + ((c - a) * i) / steps, sd * rl, 0.25), this.at(b, a + ((c - a) * (i + 1)) / steps, sd * rl, 0.25), { spacing: 2.0, h: 1.1, skipFirst: i > 0, mat: 'blueSteel' });
         }
       }
     }
@@ -399,6 +403,69 @@ export class BigBridge extends Overpass {
         crown.translate(c.x + dx * r, c.y + h + r * 0.55 + dy * r, c.z + dz * r); this.add('leaf', crown);
       }
     });
+  }
+
+  // an existing stair complex given as a polyline from its top: steps are spread over the longer
+  // segments (flights), short segments stay level (landings); optional wheel channels for bikes/scooters
+  stairway(st) {
+    const yGround = (p) => this.groundAt(p.x, p.z);
+    const P = st.pts.map((q) => V(q));
+    const segs = [];
+    for (let i = 0; i < P.length - 1; i++) segs.push({ a: flat(P[i]), b: flat(P[i + 1]), len: flat(P[i]).distanceTo(flat(P[i + 1])) });
+    const flights = segs.filter((g) => g.len >= 2.5), runTotal = flights.reduce((t, g) => t + g.len, 0);
+    // the top sits on the deck surface where the stairs leave it (or on a given point of another flight)
+    let y = st.top ? this.stairTop(st.top) : this.surfaceNear(P[0]);
+    const yBottom = yGround(P[P.length - 1]) + 0.02, rise = (y - yBottom) / st.steps;
+    const w = st.w || 2.0;
+    const path = [P[0].clone().setY(y)];
+    let left = st.steps;
+    flights.forEach((g, k) => { g.n = k === flights.length - 1 ? left : Math.max(1, Math.round((st.steps * g.len) / runTotal)); left -= g.n; });
+    for (const g of segs) {
+      const D = g.b.clone().sub(g.a).normalize(), L = new THREE.Vector3(-D.z, 0, D.x);
+      const at = (u, l, yy) => g.a.clone().addScaledVector(D, u).addScaledVector(L, l).setY(yy);
+      if (!g.n) { // landing
+        const c = g.a.clone().add(g.b).multiplyScalar(0.5);
+        this.box('bridgeConcrete', c.clone().setY((y + yGround(c)) / 2 - 0.1), D, g.len + w * 0.5, w + 0.2, y - yGround(c) + 0.2);
+        path.push(g.b.clone().setY(y));
+        continue;
+      }
+      const tread = g.len / g.n;
+      for (let i = 0; i < g.n; i++) {
+        const yy = y - (i + 1) * rise, c = at((i + 0.5) * tread, 0, 0), gy = yGround(c) - 0.3;
+        this.box('bridgeConcrete', c.clone().setY((yy + gy) / 2), D, tread + 0.02, w, Math.max(0.1, yy - gy));
+      }
+      const y1 = y - g.n * rise;
+      for (const sd of [-1, 1]) this.railing(at(0, sd * (w / 2 - 0.05), y), at(g.len, sd * (w / 2 - 0.05), y1 + rise), { spacing: 1.6, h: 1.0, mat: 'blueSteel' });
+      if (st.channels) { // steel wheel channels along both edges of the flight
+        for (const sd of [-1, 1]) {
+          const a = at(0.15, sd * (w / 2 - 0.3), y + 0.03), b = at(g.len - 0.15, sd * (w / 2 - 0.3), y1 + 0.03);
+          const len = a.distanceTo(b), mid = a.clone().add(b).multiplyScalar(0.5);
+          const geo = new THREE.BoxGeometry(len, 0.06, 0.16);
+          const dir = b.clone().sub(a).normalize();
+          geo.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(1, 0, 0), dir));
+          geo.translate(mid.x, mid.y, mid.z);
+          this.add('steel', geo);
+        }
+      }
+      y = y1;
+      path.push(g.b.clone().setY(y));
+    }
+    this.footprint.push(...segs.map((g) => [g.a.clone().add(g.b).multiplyScalar(0.5), g.b.clone().sub(g.a).normalize(), g.len / 2 + 0.5, w / 2 + 0.8]));
+    this.stairTops = this.stairTops || [];
+    st.pts.forEach((q, i) => { if (i) this.stairTops.push({ q, y: path[i].y }); });
+    this.paths.list.push({ id: st.id, pts: path });
+  }
+
+  // walking-surface height of the nearest deck at a point (stairs leaving a sidewalk)
+  surfaceNear(Q) {
+    let best = null;
+    for (const b of this.branches) { const l = this.locateOn(b, Q); if (!best || l.dist < best.dist) best = { ...l, b }; }
+    return this.at(best.b, best.s).y + 0.15;
+  }
+
+  stairTop([e, n]) {
+    const hit = (this.stairTops || []).find((t) => Math.hypot(t.q[0] - e, t.q[1] - n) < 0.5);
+    return hit ? hit.y : this.groundAt(e, -n) + 2.5;
   }
 
   // ramps stand on single steel columns every <=9 m; near the ground they sit on a solid plinth
