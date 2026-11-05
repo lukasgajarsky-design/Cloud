@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+import { readFileSync, writeFileSync } from 'node:fs';
+const [, , src, out] = process.argv;
+const html = '<!doctype html><html lang="sk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>' + readFileSync(src, 'utf8') + '</body></html>';
+writeFileSync(src.replace(/\.html$/, '_print.html'), html);
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const page = await browser.newPage();
+await page.emulateMedia({ colorScheme: 'light', media: 'print' });
+await page.goto('file://' + src.replace(/\.html$/, '_print.html'), { waitUntil: 'networkidle' });
+await page.pdf({ path: out, format: 'A4', printBackground: true, margin: { top: '14mm', bottom: '14mm', left: '14mm', right: '14mm' } });
+await browser.close();

@@ -1,0 +1,188 @@
+<title>Zelená zóna pri moste</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;800&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: a two-page project brief for city councillors – key facts strip, site plan, then the argument; tables scroll in their own box, print gives clean A4. */
+:root {
+  --bg: #eef0eb; --paper: #fbfcf9; --fg: #1c211d; --muted: #59615b;
+  --accent: #8a5631; --green: #2e7046; --line: rgba(28, 33, 29, 0.13); --chip: rgba(28, 33, 29, 0.06);
+  --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #101311; --paper: #171b18; --fg: #e8ebe6; --muted: #a2aaa4; --accent: #c98b5b; --green: #7cc495; --line: rgba(232, 235, 230, 0.13); --chip: rgba(232, 235, 230, 0.08); color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #101311; --paper: #171b18; --fg: #e8ebe6; --muted: #a2aaa4; --accent: #c98b5b; --green: #7cc495; --line: rgba(232, 235, 230, 0.13); --chip: rgba(232, 235, 230, 0.08); color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--display); font-size: 15.5px; line-height: 1.55; }
+.wrap { max-width: 860px; margin: 0 auto; padding-block: 28px 44px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 26px; }
+header { display: grid; gap: 8px; }
+.eyebrow { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font-size: clamp(30px, 6vw, 44px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; text-wrap: balance; }
+h2 { margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.01em; text-wrap: balance; }
+p { margin: 0; }
+.lead { font-size: 17px; max-width: 66ch; }
+.by { color: var(--muted); font-size: 14px; }
+.by b { color: var(--accent); }
+.facts { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.facts div { background: var(--paper); padding: 11px 14px; display: grid; gap: 2px; min-width: 0; }
+.facts dt { font-size: 12px; color: var(--muted); }
+.facts dd { margin: 0; font-family: var(--mono); font-size: 17px; font-variant-numeric: tabular-nums; }
+figure { margin: 0; display: grid; gap: 6px; }
+figure img { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); }
+figcaption { font-size: 13px; color: var(--muted); }
+section { display: grid; gap: 10px; min-width: 0; }
+ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; max-width: 70ch; }
+li b { font-weight: 700; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); background: var(--chip); font-weight: 700; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 700; width: 34%; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 8px; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 112px 1fr; gap: 12px; align-items: baseline; }
+ol.steps li span { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+.note { font-size: 13px; color: var(--muted); }
+.ask { background: var(--paper); border: 1px solid var(--accent); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; }
+footer { border-top: 1px solid var(--line); padding-top: 14px; font-size: 13px; color: var(--muted); display: grid; gap: 3px; }
+@media (max-width: 520px) { ol.steps li { grid-template-columns: 1fr; gap: 2px; } }
+@media print {
+  @page { size: A4; margin: 12mm 13mm 12mm; }
+  body { background: #ffffff; color: #1c211d; font-size: 10pt; line-height: 1.45; }
+  .wrap { max-width: none; padding: 0; gap: 12px; }
+  h1 { font-size: 24pt; }
+  h2 { font-size: 13pt; break-after: avoid; }
+  .lead { font-size: 10.5pt; }
+  .facts { grid-template-columns: repeat(5, 1fr); }
+  .facts dd { font-size: 10.5pt; }
+  .scroll, .facts div, .ask { background: #ffffff; }
+  table { font-size: 9pt; }
+  th, td { padding: 5px 8px; }
+  figure img { max-height: 132mm; width: auto; max-width: 100%; margin: 0 auto; }
+  figure, .ask, tr, ol.steps li { break-inside: avoid; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Projektový zámer pre poslancov MsZ Hlohovec</p>
+    <h1>Zelená zóna pri moste cez Váh</h1>
+    <p class="lead">Nevyužitý priestor pri moste a pod ním premeníme na tienistú oddychovú zónu so stromami, lavicami a stolmi. Schody z mosta nahradíme rampami pre chodcov, kočíky, vozíky aj bicykle a zónu prepojíme po hrádzi s Parkom R. Dilongu. Projekt je navrhnutý tak, aby ho mesto mohlo financovať z Nórskych grantov – výzva GRT01.</p>
+    <p class="by">Pripravil: <b>Lukáš Gajarský</b> · november 2026</p>
+  </header>
+
+  <dl class="facts">
+    <div><dt>Výzva</dt><dd>Nórske granty GRT01</dd></div>
+    <div><dt>Grant</dt><dd>1,5 – 2,5 mil. €</dd></div>
+    <div><dt>Spolufinancovanie mesta</dt><dd>0 %</dd></div>
+    <div><dt>Trvanie projektu</dt><dd>36 – 42 mesiacov</dd></div>
+    <div><dt>Uzávierka žiadostí</dt><dd>6. 3. 2027</dd></div>
+  </dl>
+
+  <figure>
+    <img src="zamer_situacia.jpg" alt="Situácia: most cez Váh, hrádza s cyklotrasou, navrhované oddychové zóny a rampy, Park R. Dilongu a materská škola pri moste" width="1400" height="1260">
+    <figcaption>Situácia (orientačný zákres). Rampy, zóny a pás pri hrádzi spresní projektant po zameraní a overení pozemkov.</figcaption>
+  </figure>
+
+  <div class="two">
+    <section>
+      <h2>Čo navrhujeme</h2>
+      <ul>
+        <li><b>Oddychová zóna</b> pod mostom a pri hrádzi: stromy, lavice, stoly, tieň a pitná voda.</li>
+        <li><b>Rampy namiesto schodov</b> na oboch stranách mosta – bez bariér pre chodcov, kočíky, vozíky a bicykle.</li>
+        <li><b>Prepojenie po hrádzi</b> s Parkom R. Dilongu (asi 250 m).</li>
+        <li><b>Dažďová voda z mosta</b> stečie do dažďových záhrad a vsakovacích pásov namiesto kanalizácie.</li>
+        <li><b>Pilotná mestská budova</b> v blízkosti (napr. materská škola pri moste): fotovoltika, zelená strecha alebo dažďová záhrada v areáli.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Čo to mestu prinesie</h2>
+      <ul>
+        <li>Chodci a cyklisti z mosta pôjdu rovno na hrádzu a nemusia cez centrum. Menej ľudí na priechodoch pri kruhovom objazde, ktorým denne prejde okolo 22 700 áut (sčítanie SSC 2022).</li>
+        <li>Nevyužité miesto sa zmení na verejný priestor pre rodiny, seniorov a mládež.</li>
+        <li>Tieň a zeleň ochladzujú okolie počas horúčav, zeleň zadrží dažďovú vodu.</li>
+        <li>Mesto získa plán adaptácie na zmenu klímy, dáta zo senzorov a skúsenosti pre ďalšie projekty.</li>
+      </ul>
+    </section>
+  </div>
+
+  <section>
+    <h2>Ako zámer spĺňa podmienky výzvy GRT01</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th scope="col">Povinná podmienka výzvy</th><th scope="col">Riešenie v Hlohovci</th></tr></thead>
+        <tbody>
+          <tr><td>Žiadateľ – verejný sektor</td><td>Mesto Hlohovec (podáva mesto, nie súkromná osoba).</td></tr>
+          <tr><td>Plán adaptácie a odolnosti</td><td>Pre mestský úrad ako inštitúciu: horúčavy, prívalové dažde, sucho; podľa metodiky KLIMA-ADAPT (SAŽP).</td></tr>
+          <tr><td>Opatrenia na budove a v areáli</td><td>Aspoň jedna mestská budova pri moste a jej areál; zóna pri moste ako verejná ukážková plocha.</td></tr>
+          <tr><td>Najmenej 2 prírode blízke riešenia</td><td>Dažďové záhrady s vodou z mosta, vsakovací pás, priepustná dlažba, stromy na tienenie, zelená strecha.</td></tr>
+          <tr><td>Najmenej 1 obnoviteľný zdroj energie</td><td>Fotovoltika s batériou na budove; solárna pergola s nabíjaním elektrobicyklov pri zóne.</td></tr>
+          <tr><td>Senzory a internet vecí</td><td>Teplota zóna vs. ulica, vlhkosť pôdy, zrážky, výroba energie, počítadlo chodcov a cyklistov na rampách.</td></tr>
+          <tr><td>Zelené riadenie</td><td>Smernica mesta o zelenom verejnom obstarávaní, rozhodovanie podľa dát, plánovanie s obyvateľmi.</td></tr>
+          <tr><td>Vzdelávanie a osveta</td><td>Škola ako živé laboratórium (žiaci pracujú s dátami), učebňa v prírode, verejné podujatia.</td></tr>
+          <tr><td>Rodová rovnosť a zraniteľné skupiny</td><td>Bezbariérové rampy, osvetlenie a bezpečnosť, lavice pre seniorov, priestor pre rodičov s deťmi.</td></tr>
+          <tr><td>Body navyše</td><td>Nórsky partner (napr. NVE), univerzita ako partner, okres vystavený horúčavám a suchu (overiť podľa štúdie IEP a OECD).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Rampy z mosta sú dopravný prvok. Do projektu patria ako bezbariérový prístup k zóne a nesmú tvoriť väčšinu rozpočtu. Ak by vyšli drahšie, financujú sa zvlášť (kraj, výzvy na cyklodopravu).</p>
+  </section>
+
+  <section>
+    <h2>Orientačné rozdelenie rozpočtu (cca 2 mil. €)</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th scope="col">Časť</th><th scope="col">Podiel</th><th scope="col">Obsah</th></tr></thead>
+        <tbody>
+          <tr><td>Plán adaptácie, dáta, projekt</td><td class="num">5–8 %</td><td>klimatické riziká, zraniteľnosť, projektová dokumentácia</td></tr>
+          <tr><td>Pilotná budova a areál</td><td class="num">35–45 %</td><td>fotovoltika a batéria, zelená strecha, dažďová záhrada</td></tr>
+          <tr><td>Zóna pri moste</td><td class="num">25–35 %</td><td>stromy, dažďové záhrady, povrchy, lavice a stoly, pergola, senzory</td></tr>
+          <tr><td>Rampy z mosta</td><td class="num">do 15–20 %</td><td>bezbariérový prístup k zóne a hrádzi</td></tr>
+          <tr><td>Vzdelávanie, riadenie, publicita</td><td class="num">5–10 %</td><td>živé laboratórium, smernice, podujatia</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Rozdelenie je orientačné, spresní ho projektant a projektový manažér mesta.</p>
+  </section>
+
+  <section class="ask">
+    <h2>Čo potrebujeme od poslancov</h2>
+    <ul>
+      <li>Podporiť zámer na rokovaní komisie výstavby a životného prostredia.</li>
+      <li>Predložiť do mestského zastupiteľstva uznesenie: <b>„MsZ schvaľuje predloženie žiadosti o grant v rámci výzvy GRT01 Nórskych grantov a realizáciu projektu“</b>.</li>
+      <li>Poveriť mestský úrad prípravou žiadosti a oslovením partnerov.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Harmonogram</h2>
+    <ol class="steps">
+      <li><span>november 2026</span><div>Zámer a stretnutia s poslancami, primátorom a oddelením mesta pre projekty.</div></li>
+      <li><span>dec. 2026 / feb. 2027</span><div>Uznesenie MsZ o predložení žiadosti.</div></li>
+      <li><span>dec. – jan.</span><div>Listy o zámere od nórskeho partnera a univerzity; konzultácie so SÚC TTSK (most) a Slovenským vodohospodárskym podnikom (hrádza); predbežné technické riešenie.</div></li>
+      <li><span>jan. – feb. 2027</span><div>Vyplnenie žiadosti v systéme EGRANT (slovensky, so zhrnutím v angličtine).</div></li>
+      <li><span>6. 3. 2027</span><div>Podanie žiadosti.</div></li>
+      <li><span>7 – 9/2027</span><div>Rozhodnutie o grante a podpis zmluvy.</div></li>
+      <li><span>2027 – 4/2031</span><div>Realizácia projektu.</div></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Čo treba overiť pred podaním</h2>
+    <ul>
+      <li><b>Pozemky:</b> komu patrí plocha pod mostom a pri hrádzi (mesto, kraj, vodohospodársky podnik). K žiadosti treba listy vlastníctva.</li>
+      <li><b>Hrádza:</b> do 10 m od päty hrádze ide o pobrežný pozemok, ktorý smie užívať správca toku a môže tam odstraňovať stromy (§ 49 ods. 2 zákona č. 364/2004 Z. z. o vodách). Stromy a mobiliár umiestniť mimo tohto pásu a odsúhlasiť so SVP.</li>
+      <li><b>Most:</b> súhlas vlastníka a správcu (Trnavský kraj, SÚC TTSK), zachovať prístup ku kontrolám mosta.</li>
+      <li><b>Pilotná budova:</b> či je zriaďovateľom materskej školy pri moste mesto, prípadne iná mestská budova v okolí.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>Výzva GRT01 · Správca programu: MIRRI SR · otázky: eeagrants@mirri.gov.sk, +421 2 2092 8464 · žiadosti: norway.egrant.sk</span>
+    <span>Nórsky programový partner: NVE (lkro@nve.no, jome@nve.no) · Metodika adaptácie: platforma KLIMA-ADAPT (SAŽP)</span>
+    <span>Podklady mapy: © Esri, Maxar, Earthstar Geographics · © prispievatelia OpenStreetMap · Dopravné dáta: SSC, Celoštátne sčítanie dopravy 2022.</span>
+    <span>Zámer je ilustračný; technické riešenie spresní projektant.</span>
+  </footer>
+</div>
